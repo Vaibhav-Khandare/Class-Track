@@ -11,7 +11,6 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-<<<<<<< HEAD
         android:id="@+id/signin"
         android:text="Sign in"
         android:textColor="@color/white"
@@ -21,13 +20,9 @@
         android:layout_marginTop="20dp"
         android:textStyle="bold"
         />
-=======
-        android:text="CLASS TRACK!"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
->>>>>>> 94a1fc460926eab60673aee036771222da2fcdb8
+
+
+
 
     <EditText
         android:layout_width="match_parent"
@@ -50,7 +45,7 @@
         android:id="@+id/password"
         android:layout_below="@+id/username"
         android:background="#5FB8B6"
-        android:hint="Username"
+        android:hint="Password"
         android:textColorHint="@color/white"
         android:textColor="@color/white"
         android:layout_margin="30dp"
@@ -59,8 +54,16 @@
         android:drawablePadding="10dp"
 
         />
+    <com.google.android.material.button.MaterialButton
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/loginbtn"
+        android:layout_below="@+id/password"
+        android:text="LOGIN"
+        android:background="#0D5A50"
 
 
+       />
 
 
 </RelativeLayout>
