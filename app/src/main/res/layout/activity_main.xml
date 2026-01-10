@@ -11,6 +11,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+<<<<<<< HEAD
         android:id="@+id/signin"
         android:text="Sign in"
         android:textColor="@color/white"
@@ -20,6 +21,13 @@
         android:layout_marginTop="20dp"
         android:textStyle="bold"
         />
+=======
+        android:text="CLASS TRACK!"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+>>>>>>> 94a1fc460926eab60673aee036771222da2fcdb8
 
     <EditText
         android:layout_width="match_parent"
