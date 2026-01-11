@@ -54,16 +54,29 @@
         android:drawablePadding="10dp"
 
         />
+
     <com.google.android.material.button.MaterialButton
+        android:id="@+id/loginbtn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:id="@+id/loginbtn"
         android:layout_below="@+id/password"
-        android:text="LOGIN"
+        android:layout_marginTop="57dp"
         android:background="#0D5A50"
+        android:layout_centerInParent="true"
+        android:text="LOGIN" />
 
-
-       />
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/reg"
+        android:text="Sign in"
+        android:textColor="@color/white"
+        android:textSize="35dp"
+        android:layout_margin="50dp"
+        android:gravity="center"
+        android:layout_marginTop="20dp"
+        android:textStyle="bold"
+        />
 
 
 </RelativeLayout>
