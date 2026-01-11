@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "561059497614",
+    "project_id": "class-track-54dea",
+    "storage_bucket": "class-track-54dea.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:561059497614:android:08e3cd3565a7df05402bdf",
+        "android_client_info": {
+          "package_name": "com.example.classtrack"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD0Mroyv-IdNLdEm06yp6gn3f2qbC0sVK8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
