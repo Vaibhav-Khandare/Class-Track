@@ -1,11 +1,14 @@
 package com.example.classtrack;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.splashscreen.SplashScreen;
+
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
-import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -22,6 +25,11 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
+        // Splash Screen (correct usage)
+        SplashScreen.installSplashScreen(this);
+
+        // MUST be called ONLY ONCE
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -49,12 +57,13 @@ public class MainActivity extends AppCompatActivity {
             // Check if already logged in
             checkExistingLogin();
 
-            // Set click listeners
+            // Login button click
             btnLogin.setOnClickListener(v -> {
                 Log.d("APP_DEBUG", "Login button clicked");
                 loginTeacher();
             });
 
+            // Register text click
             TextView tvRegister = findViewById(R.id.tvRegister);
             if (tvRegister != null) {
                 tvRegister.setOnClickListener(v -> {
@@ -93,7 +102,6 @@ public class MainActivity extends AppCompatActivity {
 
             Log.d("LOGIN_ATTEMPT", "Username: " + username + ", Password length: " + password.length());
 
-            // Validation
             if (username.isEmpty()) {
                 etUsername.setError("Enter username");
                 etUsername.requestFocus();
@@ -106,11 +114,10 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
 
-            // Show loading state
             btnLogin.setText("Checking...");
             btnLogin.setEnabled(false);
 
-            // SIMPLE TEST - Remove Firestore temporarily
+            // TEMP TEST LOGIN
             testLoginWithoutFirebase(username, password);
 
         } catch (Exception e) {
@@ -122,18 +129,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void testLoginWithoutFirebase(String username, String password) {
-        // TEMPORARY: Test without Firebase
+
         Log.d("LOGIN_TEST", "Testing without Firebase");
 
-        // Simulate network delay
-        new android.os.Handler().postDelayed(() -> {
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
             try {
-                // For testing, accept these credentials
                 if (username.equals("vaibhav") && password.equals("vaibhav@123")) {
-                    Log.d("LOGIN_TEST", "Test credentials accepted");
 
-                    // Save session
-                    SharedPreferences.Editor editor = getSharedPreferences("TeacherPrefs", MODE_PRIVATE).edit();
+                    SharedPreferences.Editor editor =
+                            getSharedPreferences("TeacherPrefs", MODE_PRIVATE).edit();
+
                     editor.putString("username", username);
                     editor.putString("teacherName", "Vaibhav Khandare");
                     editor.putString("email", "vaibhavkhandare2007@gmail.com");
@@ -143,7 +148,6 @@ public class MainActivity extends AppCompatActivity {
 
                     Toast.makeText(this, "Welcome Vaibhav!", Toast.LENGTH_SHORT).show();
 
-                    // Go to Dashboard
                     Intent intent = new Intent(this, DashboardActivity.class);
                     startActivity(intent);
                     finish();
@@ -159,6 +163,6 @@ public class MainActivity extends AppCompatActivity {
                 btnLogin.setEnabled(true);
                 Toast.makeText(this, "Test error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
             }
-        }, 1500); // 1.5 second delay
+        }, 1500);
     }
 }
