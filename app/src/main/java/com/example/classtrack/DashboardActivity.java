@@ -1,44 +1,48 @@
 package com.example.classtrack;
 
-import androidx.appcompat.app.AppCompatActivity;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.appcompat.app.AppCompatActivity;
 
 public class DashboardActivity extends AppCompatActivity {
+
+    TextView tvWelcome;
+    Button btnMark1, btnView1, btnMark2, btnView2, btnMark3, btnView3, btnLogout;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_dashboard);
 
-        // Get saved teacher data
+        // Fetch teacher name
         SharedPreferences prefs = getSharedPreferences("TeacherPrefs", MODE_PRIVATE);
-        String teacherName = prefs.getString("teacherName", "Teacher");
+        String name = prefs.getString("username", "Teacher");
 
-        // Display teacher info
-        TextView tvWelcome = findViewById(R.id.tvWelcome);
-        tvWelcome.setText("Welcome, " + teacherName);
+        // Initialize Views
+        tvWelcome = findViewById(R.id.tvWelcome);
+        tvWelcome.setText("Welcome, " + name);
 
-        // Setup buttons
-        Button btnMarkAttendance = findViewById(R.id.btnMarkAttendance);
-        Button btnLogout = findViewById(R.id.btnLogout);
+        btnMark1 = findViewById(R.id.btnMark1);
+        btnView1 = findViewById(R.id.btnView1);
+        btnMark2 = findViewById(R.id.btnMark2);
+        btnView2 = findViewById(R.id.btnView2);
+        btnMark3 = findViewById(R.id.btnMark3);
+        btnView3 = findViewById(R.id.btnView3);
+        btnLogout = findViewById(R.id.btnLogout);
 
-        btnMarkAttendance.setOnClickListener(v ->
-                Toast.makeText(this, "Attendance feature coming soon",
-                        Toast.LENGTH_SHORT).show()
-        );
+        // Set Click Listeners
+        btnMark1.setOnClickListener(v -> Toast.makeText(this, "Marking 1st Year", Toast.LENGTH_SHORT).show());
+        btnView1.setOnClickListener(v -> Toast.makeText(this, "Viewing 1st Year", Toast.LENGTH_SHORT).show());
 
+        // Logout Logic
         btnLogout.setOnClickListener(v -> {
-            // Clear login session
             SharedPreferences.Editor editor = prefs.edit();
             editor.clear();
             editor.apply();
-
-            // Go back to login
             startActivity(new Intent(this, MainActivity.class));
             finish();
         });
