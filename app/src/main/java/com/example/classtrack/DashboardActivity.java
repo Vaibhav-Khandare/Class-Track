@@ -35,7 +35,13 @@ public class DashboardActivity extends AppCompatActivity {
         btnLogout = findViewById(R.id.btnLogout);
 
         // Set Click Listeners
-        btnMark1.setOnClickListener(v -> Toast.makeText(this, "Marking 1st Year", Toast.LENGTH_SHORT).show());
+        btnMark1.setOnClickListener(v -> {
+            Intent intent = new Intent(this, MarkAttendanceActivity.class);
+            intent.putExtra("YEAR", "1st Year");
+            startActivity(intent);
+        });
+
+//        btnMark1.setOnClickListener(v -> Toast.makeText(this, "Marking 1st Year", Toast.LENGTH_SHORT).show());
         btnView1.setOnClickListener(v -> Toast.makeText(this, "Viewing 1st Year", Toast.LENGTH_SHORT).show());
 
         // Logout Logic

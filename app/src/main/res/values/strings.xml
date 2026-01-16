@@ -1,3 +1,12 @@
 <resources>
     <string name="app_name">Class Track</string>
+    <string-array name="subjects_1st_year">
+        <item>English</item>
+        <item>M1</item>
+        <item>SCI-chem</item>
+        <item>SCI-phy</item>
+        <item>PIC</item>
+        <item>M2</item>
+    </string-array>
+
 </resources>

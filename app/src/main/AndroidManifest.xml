@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-
     <!-- Internet permissions (Firebase needs this) -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -15,29 +14,26 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
 
+        <activity
+            android:name=".MarkAttendanceActivity"
+            android:exported="false" />
         <!-- Splash + Launcher Activity -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:theme="@style/Theme.ClassTrack.Splash">
-
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-
-        </activity>
-
-        <!-- Registration Page -->
+        </activity> <!-- Registration Page -->
         <activity
             android:name=".RegisterActivity"
-            android:exported="false" />
-
-        <!-- Dashboard Page -->
+            android:exported="false" /> <!-- Dashboard Page -->
         <activity
             android:name=".DashboardActivity"
             android:exported="false" />
-
     </application>
 
 </manifest>
