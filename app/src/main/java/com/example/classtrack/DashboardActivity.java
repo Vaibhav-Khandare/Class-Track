@@ -41,6 +41,21 @@ public class DashboardActivity extends AppCompatActivity {
             startActivity(intent);
         });
 
+        Button btnMark2 = findViewById(R.id.btnMark2);
+        btnMark2.setOnClickListener(v -> {
+            Intent intent = new Intent(DashboardActivity.this, MarkAttendanceActivity.class);
+            intent.putExtra("YEAR", "2nd Year"); // This triggers the PDF student list
+            startActivity(intent);
+        });
+
+        // Logic for 3rd Year Button
+        Button btnMark3 = findViewById(R.id.btnMark3);
+        btnMark3.setOnClickListener(v -> {
+            Intent intent = new Intent(DashboardActivity.this, MarkAttendanceActivity.class);
+            intent.putExtra("YEAR", "3rd Year"); // This triggers the NEW 3rd year logic
+            startActivity(intent);
+        });
+
 //        btnMark1.setOnClickListener(v -> Toast.makeText(this, "Marking 1st Year", Toast.LENGTH_SHORT).show());
         btnView1.setOnClickListener(v -> Toast.makeText(this, "Viewing 1st Year", Toast.LENGTH_SHORT).show());
 

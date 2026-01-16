@@ -5,8 +5,38 @@
         <item>M1</item>
         <item>SCI-chem</item>
         <item>SCI-phy</item>
+        <item>ICT</item>
         <item>PIC</item>
         <item>M2</item>
+        <item>BEE-ET</item>
+        <item>BBE-EE</item>
+        <item>WPD</item>
+        <item>BLP</item>
+    </string-array>
+
+    <string-array name="subjects_2nd_year">
+        <item>DSU</item>
+        <item>DTE</item>
+        <item>DBMS</item>
+        <item>OOP</item>
+        <item>CGR</item>
+        <item>JPR</item>
+        <item>DCN</item>
+        <item>MIC</item>
+        <item>PWP</item>
+        <item>EES</item>
+        <item>UID</item>
+    </string-array>
+
+    <string-array name="subjects_3rd_year">
+        <item>OSY</item>
+        <item>STE</item>
+        <item>DCN</item>
+        <item>SFT</item>
+        <item>MAL</item>
+        <item>ETI</item>
+        <item>MAN</item>
+        <item>CSS</item>
     </string-array>
 
 </resources>
