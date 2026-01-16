@@ -9,24 +9,28 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import java.util.List;
+import java.util.ArrayList;
 
 public class StudentAdapter extends RecyclerView.Adapter<StudentAdapter.ViewHolder> {
 
-    List<Student> students;
-    boolean editable = true;
+    private ArrayList<Student> students;
+    private boolean editable = true; // controls checkbox edit mode
 
-    public StudentAdapter(List<Student> students) {
+    public StudentAdapter(ArrayList<Student> students) {
         this.students = students;
     }
 
-    public void setAll(boolean present) {
-        for (Student s : students) s.present = present;
+    // 🔹 Enable / Disable checkbox editing
+    public void setEditable(boolean editable) {
+        this.editable = editable;
         notifyDataSetChanged();
     }
 
-    public void setEditable(boolean value) {
-        editable = value;
+    // 🔹 Set all students present or absent
+    public void setAll(boolean present) {
+        for (Student s : students) {
+            s.setPresent(present);
+        }
         notifyDataSetChanged();
     }
 
@@ -39,14 +43,23 @@ public class StudentAdapter extends RecyclerView.Adapter<StudentAdapter.ViewHold
     }
 
     @Override
-    public void onBindViewHolder(@NonNull ViewHolder h, int i) {
-        Student s = students.get(i);
-        h.tvRoll.setText(String.valueOf(s.roll));
-        h.tvName.setText(s.name);
-        h.cbPresent.setChecked(s.present);
-        h.cbPresent.setEnabled(editable);
+    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+        Student student = students.get(position);
 
-        h.cbPresent.setOnCheckedChangeListener((b, checked) -> s.present = checked);
+        holder.tvRoll.setText(String.valueOf(student.getRoll()));
+        holder.tvName.setText(student.getName());
+
+        // VERY IMPORTANT to avoid checkbox recycling issues
+        holder.cbPresent.setOnCheckedChangeListener(null);
+
+        holder.cbPresent.setChecked(student.isPresent());
+        holder.cbPresent.setEnabled(editable);
+
+        holder.cbPresent.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (editable) {
+                student.setPresent(isChecked);
+            }
+        });
     }
 
     @Override
@@ -54,15 +67,17 @@ public class StudentAdapter extends RecyclerView.Adapter<StudentAdapter.ViewHold
         return students.size();
     }
 
+    // 🔹 ViewHolder
     static class ViewHolder extends RecyclerView.ViewHolder {
+
         TextView tvRoll, tvName;
         CheckBox cbPresent;
 
-        ViewHolder(View v) {
-            super(v);
-            tvRoll = v.findViewById(R.id.tvRoll);
-            tvName = v.findViewById(R.id.tvName);
-            cbPresent = v.findViewById(R.id.cbPresent);
+        ViewHolder(@NonNull View itemView) {
+            super(itemView);
+            tvRoll = itemView.findViewById(R.id.tvRoll);
+            tvName = itemView.findViewById(R.id.tvName);
+            cbPresent = itemView.findViewById(R.id.cbPresent);
         }
     }
 }
