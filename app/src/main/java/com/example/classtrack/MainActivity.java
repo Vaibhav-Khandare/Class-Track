@@ -6,8 +6,6 @@ import androidx.core.splashscreen.SplashScreen;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
 import android.util.Log;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -15,154 +13,152 @@ import android.widget.Toast;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.firebase.FirebaseApp;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 public class MainActivity extends AppCompatActivity {
 
     private EditText etUsername, etPassword;
     private MaterialButton btnLogin;
+
+    // Firebase Instances
     private FirebaseFirestore db;
+    private FirebaseAuth mAuth;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-
-        // Splash Screen (correct usage)
         SplashScreen.installSplashScreen(this);
-
-        // MUST be called ONLY ONCE
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Log.d("APP_DEBUG", "MainActivity started");
-
         try {
-            // Initialize Firebase
             FirebaseApp.initializeApp(this);
+            mAuth = FirebaseAuth.getInstance();
             db = FirebaseFirestore.getInstance();
-            Log.d("APP_DEBUG", "Firebase initialized");
 
-            // Initialize views
+            // Setup Views
             etUsername = findViewById(R.id.username);
             etPassword = findViewById(R.id.password);
             btnLogin = findViewById(R.id.loginbtn);
 
-            if (etUsername == null || etPassword == null || btnLogin == null) {
-                Toast.makeText(this, "UI elements not found!", Toast.LENGTH_LONG).show();
-                Log.e("APP_DEBUG", "Some UI elements are null");
-                return;
-            }
-
-            Log.d("APP_DEBUG", "All UI elements found");
-
-            // Check if already logged in
             checkExistingLogin();
 
-            // Login button click
-            btnLogin.setOnClickListener(v -> {
-                Log.d("APP_DEBUG", "Login button clicked");
-                loginTeacher();
-            });
+            btnLogin.setOnClickListener(v -> loginWithUsername());
 
-            // Register text click
             TextView tvRegister = findViewById(R.id.tvRegister);
             if (tvRegister != null) {
                 tvRegister.setOnClickListener(v -> {
-                    Intent intent = new Intent(MainActivity.this, RegisterActivity.class);
-                    startActivity(intent);
+                    startActivity(new Intent(MainActivity.this, RegisterActivity.class));
                 });
             }
 
-            Log.d("APP_DEBUG", "MainActivity setup complete");
-
         } catch (Exception e) {
-            Log.e("APP_CRASH", "Crash in onCreate: " + e.getMessage(), e);
-            Toast.makeText(this, "App error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            Log.e("APP_CRASH", "Error: " + e.getMessage());
         }
     }
 
     private void checkExistingLogin() {
-        try {
-            SharedPreferences prefs = getSharedPreferences("TeacherPrefs", MODE_PRIVATE);
-            boolean isLoggedIn = prefs.getBoolean("isLoggedIn", false);
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+        SharedPreferences prefs = getSharedPreferences("TeacherPrefs", MODE_PRIVATE);
+        boolean isLoggedIn = prefs.getBoolean("isLoggedIn", false);
 
-            if (isLoggedIn) {
-                Log.d("APP_DEBUG", "Already logged in, going to dashboard");
-                startActivity(new Intent(this, DashboardActivity.class));
-                finish();
-            }
-        } catch (Exception e) {
-            Log.e("APP_DEBUG", "Error in checkExistingLogin: " + e.getMessage());
+        if (currentUser != null && isLoggedIn) {
+            startActivity(new Intent(this, DashboardActivity.class));
+            finish();
         }
     }
 
-    private void loginTeacher() {
-        try {
-            String username = etUsername.getText().toString().trim();
-            String password = etPassword.getText().toString().trim();
+    // --- NEW LOGIC STARTS HERE ---
 
-            Log.d("LOGIN_ATTEMPT", "Username: " + username + ", Password length: " + password.length());
+    private void loginWithUsername() {
+        String usernameInput = etUsername.getText().toString().trim();
+        String passwordInput = etPassword.getText().toString().trim();
 
-            if (username.isEmpty()) {
-                etUsername.setError("Enter username");
-                etUsername.requestFocus();
-                return;
-            }
-
-            if (password.isEmpty()) {
-                etPassword.setError("Enter password");
-                etPassword.requestFocus();
-                return;
-            }
-
-            btnLogin.setText("Checking...");
-            btnLogin.setEnabled(false);
-
-            // TEMP TEST LOGIN
-            testLoginWithoutFirebase(username, password);
-
-        } catch (Exception e) {
-            Log.e("LOGIN_CRASH", "Crash in loginTeacher: " + e.getMessage(), e);
-            btnLogin.setText("LOGIN");
-            btnLogin.setEnabled(true);
-            Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        if (usernameInput.isEmpty()) {
+            etUsername.setError("Enter Username");
+            return;
         }
-    }
+        if (passwordInput.isEmpty()) {
+            etPassword.setError("Enter Password");
+            return;
+        }
 
-    private void testLoginWithoutFirebase(String username, String password) {
+        btnLogin.setText("Finding User...");
+        btnLogin.setEnabled(false);
 
-        Log.d("LOGIN_TEST", "Testing without Firebase");
+        // STEP 1: Find the email associated with this username
+        db.collection("teachers")
+                .whereEqualTo("username", usernameInput) // Look for the username field
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    if (!queryDocumentSnapshots.isEmpty()) {
+                        // Username found! Get the email.
+                        DocumentSnapshot document = queryDocumentSnapshots.getDocuments().get(0);
+                        String emailFound = document.getString("email");
 
-        new Handler(Looper.getMainLooper()).postDelayed(() -> {
-            try {
-                if (username.equals("vaibhav") && password.equals("vaibhav@123")) {
-
-                    SharedPreferences.Editor editor =
-                            getSharedPreferences("TeacherPrefs", MODE_PRIVATE).edit();
-
-                    editor.putString("username", username);
-                    editor.putString("teacherName", "Vaibhav Khandare");
-                    editor.putString("email", "vaibhavkhandare2007@gmail.com");
-                    editor.putString("mobile", "9604184377");
-                    editor.putBoolean("isLoggedIn", true);
-                    editor.apply();
-
-                    Toast.makeText(this, "Welcome Vaibhav!", Toast.LENGTH_SHORT).show();
-
-                    Intent intent = new Intent(this, DashboardActivity.class);
-                    startActivity(intent);
-                    finish();
-
-                } else {
-                    Toast.makeText(this, "Invalid credentials", Toast.LENGTH_SHORT).show();
+                        if (emailFound != null) {
+                            // STEP 2: Use the found email + entered password to Authenticate
+                            performFirebaseAuth(emailFound, passwordInput, document);
+                        } else {
+                            btnLogin.setText("LOGIN");
+                            btnLogin.setEnabled(true);
+                            Toast.makeText(this, "Error: Username has no email linked.", Toast.LENGTH_SHORT).show();
+                        }
+                    } else {
+                        // Username does not exist
+                        btnLogin.setText("LOGIN");
+                        btnLogin.setEnabled(true);
+                        etUsername.setError("Username not found");
+                        Toast.makeText(this, "Username not found", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .addOnFailureListener(e -> {
                     btnLogin.setText("LOGIN");
                     btnLogin.setEnabled(true);
-                }
-            } catch (Exception e) {
-                Log.e("LOGIN_TEST", "Error in test: " + e.getMessage());
-                btnLogin.setText("LOGIN");
-                btnLogin.setEnabled(true);
-                Toast.makeText(this, "Test error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-            }
-        }, 1500);
+                    Toast.makeText(this, "Database Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+    }
+
+    private void performFirebaseAuth(String email, String password, DocumentSnapshot userDoc) {
+        btnLogin.setText("Verifying...");
+
+        mAuth.signInWithEmailAndPassword(email, password)
+                .addOnCompleteListener(this, task -> {
+                    if (task.isSuccessful()) {
+                        // Login Success
+                        Log.d("LOGIN", "Login success");
+                        saveToPreferences(userDoc);
+                    } else {
+                        // Password likely wrong
+                        btnLogin.setText("LOGIN");
+                        btnLogin.setEnabled(true);
+                        etPassword.setError("Wrong Password");
+                        Toast.makeText(this, "Authentication Failed (Wrong Password)", Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    private void saveToPreferences(DocumentSnapshot document) {
+        SharedPreferences.Editor editor = getSharedPreferences("TeacherPrefs", MODE_PRIVATE).edit();
+
+        String name = document.getString("name");
+        String email = document.getString("email");
+        String mobile = document.getString("mobile");
+        String username = document.getString("username");
+
+        editor.putString("teacherName", name != null ? name : "Unknown");
+        editor.putString("username", username);
+        editor.putString("email", email);
+        editor.putString("mobile", mobile);
+        editor.putBoolean("isLoggedIn", true);
+        editor.apply();
+
+        Toast.makeText(MainActivity.this, "Welcome " + (name != null ? name : "Teacher"), Toast.LENGTH_SHORT).show();
+
+        Intent intent = new Intent(MainActivity.this, DashboardActivity.class);
+        startActivity(intent);
+        finish();
     }
 }
