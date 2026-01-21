@@ -10,7 +10,6 @@
         android:orientation="vertical"
         android:padding="20dp">
 
-        <!-- Title -->
         <TextView
             android:id="@+id/tvTitle"
             android:layout_width="wrap_content"
@@ -21,7 +20,6 @@
             android:textColor="#1A237E"
             android:layout_marginBottom="16dp" />
 
-        <!-- Subject -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -36,7 +34,6 @@
             android:entries="@array/subjects_1st_year"/>
 
 
-        <!-- Session Time -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -67,7 +64,6 @@
 
         </LinearLayout>
 
-        <!-- Date -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -92,7 +88,6 @@
             android:layout_marginTop="12dp"/>
 
 
-        <!-- Attendance Header -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -128,7 +123,6 @@
             android:layout_marginTop="8dp"/>
 
 
-        <!-- Buttons -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -154,15 +148,6 @@
                 android:textColor="#FFFFFF"
                 android:backgroundTint="#1A237E" />
         </LinearLayout>
-
-        <Button
-            android:id="@+id/btnEdit"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="Edit"
-            android:textColor="#FFFFFF"
-            android:backgroundTint="#3949AB" />
 
     </LinearLayout>
 

@@ -35,7 +35,7 @@ public class MarkAttendanceActivity extends AppCompatActivity {
     RecyclerView recyclerStudents;
     StudentAdapter adapter;
     ArrayList<Student> studentList;
-    Button btnClear, btnSave, btnEdit;
+    Button btnClear, btnSave; // Removed btnEdit
     Spinner spinnerSubject;
 
     // 🔥 Firestore Instance
@@ -60,7 +60,7 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         recyclerStudents = findViewById(R.id.recyclerStudents);
         btnClear = findViewById(R.id.btnClear);
         btnSave = findViewById(R.id.btnSave);
-        btnEdit = findViewById(R.id.btnEdit);
+        // Removed btnEdit findView
 
         studentList = new ArrayList<>();
 
@@ -97,10 +97,13 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         // Event Listeners
         etFromTime.setOnClickListener(v -> showTimePicker(etFromTime));
         etToTime.setOnClickListener(v -> showTimePicker(etToTime));
+
+        // Fixed: removed parameter from call to match definition below
         etDate.setOnClickListener(v -> showDatePicker());
+
         toggleAttendance.setOnCheckedChangeListener((buttonView, isChecked) -> adapter.setAll(isChecked));
         btnClear.setOnClickListener(v -> adapter.setAll(false));
-        btnEdit.setOnClickListener(v -> adapter.setEditable(true));
+        // Removed btnEdit listener
 
         // 🔥 SAVE BUTTON LOGIC
         btnSave.setOnClickListener(v -> {
@@ -172,7 +175,8 @@ public class MarkAttendanceActivity extends AppCompatActivity {
                 .add(sessionMap)
                 .addOnSuccessListener(documentReference -> {
                     Toast.makeText(MarkAttendanceActivity.this, "Attendance Saved Successfully!", Toast.LENGTH_SHORT).show();
-                    adapter.setEditable(false); // Lock editing
+
+                    // 🔥 Close the activity to return to Dashboard
                     finish();
                 })
                 .addOnFailureListener(e -> {
@@ -205,6 +209,7 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         dialog.show();
     }
 
+    // 🔹 FIXED: Removed parameter to fix the error you saw
     private void showDatePicker() {
         Calendar calendar = Calendar.getInstance();
         int year = calendar.get(Calendar.YEAR);
