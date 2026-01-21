@@ -14,19 +14,19 @@ import java.util.ArrayList;
 public class StudentAdapter extends RecyclerView.Adapter<StudentAdapter.ViewHolder> {
 
     private ArrayList<Student> students;
-    private boolean editable = true; // controls checkbox edit mode
+    private boolean editable = true; // controls if checkboxes are clickable
 
     public StudentAdapter(ArrayList<Student> students) {
         this.students = students;
     }
 
-    // 🔹 Enable / Disable checkbox editing
+    // 🔹 Helper to Enable / Disable checkbox editing (used after saving)
     public void setEditable(boolean editable) {
         this.editable = editable;
         notifyDataSetChanged();
     }
 
-    // 🔹 Set all students present or absent
+    // 🔹 Helper to Set all students present or absent (Select All button)
     public void setAll(boolean present) {
         for (Student s : students) {
             s.setPresent(present);
@@ -49,12 +49,14 @@ public class StudentAdapter extends RecyclerView.Adapter<StudentAdapter.ViewHold
         holder.tvRoll.setText(String.valueOf(student.getRoll()));
         holder.tvName.setText(student.getName());
 
-        // VERY IMPORTANT to avoid checkbox recycling issues
+        // 1. Remove previous listener to avoid bugs during scrolling
         holder.cbPresent.setOnCheckedChangeListener(null);
 
+        // 2. Set current state from your Student model
         holder.cbPresent.setChecked(student.isPresent());
         holder.cbPresent.setEnabled(editable);
 
+        // 3. Add listener to update your model when user taps checkbox
         holder.cbPresent.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (editable) {
                 student.setPresent(isChecked);
@@ -67,9 +69,7 @@ public class StudentAdapter extends RecyclerView.Adapter<StudentAdapter.ViewHold
         return students.size();
     }
 
-    // 🔹 ViewHolder
     static class ViewHolder extends RecyclerView.ViewHolder {
-
         TextView tvRoll, tvName;
         CheckBox cbPresent;
 

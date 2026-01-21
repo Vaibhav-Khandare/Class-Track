@@ -3,19 +3,29 @@ package com.example.classtrack;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.os.Bundle;
-import android.widget.ArrayAdapter; // Import added
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.Spinner; // Import added
+import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.firebase.firestore.FirebaseFirestore;
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 public class MarkAttendanceActivity extends AppCompatActivity {
 
@@ -26,16 +36,23 @@ public class MarkAttendanceActivity extends AppCompatActivity {
     StudentAdapter adapter;
     ArrayList<Student> studentList;
     Button btnClear, btnSave, btnEdit;
-    Spinner spinnerSubject; // Added reference
+    Spinner spinnerSubject;
+
+    // 🔥 Firestore Instance
+    private FirebaseFirestore db;
+    private String currentYearBatch;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_mark_attendance);
 
+        // 1. Initialize Firestore
+        db = FirebaseFirestore.getInstance();
+
         // UI Initialization
         tvTitle = findViewById(R.id.tvTitle);
-        spinnerSubject = findViewById(R.id.spinnerSubject); // Bind Spinner
+        spinnerSubject = findViewById(R.id.spinnerSubject);
         etFromTime = findViewById(R.id.etFromTime);
         etToTime = findViewById(R.id.etToTime);
         etDate = findViewById(R.id.etDate);
@@ -48,17 +65,17 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         studentList = new ArrayList<>();
 
         // LOGIC TO SWITCH BETWEEN 1ST, 2ND, AND 3RD YEAR
-        String year = getIntent().getStringExtra("YEAR");
-        if (year == null) year = "1st Year"; // Default fallback
+        currentYearBatch = getIntent().getStringExtra("YEAR");
+        if (currentYearBatch == null) currentYearBatch = "1st Year"; // Default fallback
 
-        tvTitle.setText(year + " - Mark Attendance");
+        tvTitle.setText(currentYearBatch + " - Mark Attendance");
 
         int subjectArrayResId;
 
-        if (year.equals("2nd Year")) {
+        if (currentYearBatch.equals("2nd Year")) {
             subjectArrayResId = R.array.subjects_2nd_year;
             load2ndYearStudents();
-        } else if (year.equals("3rd Year")) {
+        } else if (currentYearBatch.equals("3rd Year")) {
             subjectArrayResId = R.array.subjects_3rd_year;
             load3rdYearStudents();
         } else {
@@ -71,7 +88,6 @@ public class MarkAttendanceActivity extends AppCompatActivity {
                 subjectArrayResId, android.R.layout.simple_spinner_item);
         subjectAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerSubject.setAdapter(subjectAdapter);
-        // ===========================================================
 
         // Recycler Setup
         adapter = new StudentAdapter(studentList);
@@ -84,12 +100,127 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         etDate.setOnClickListener(v -> showDatePicker());
         toggleAttendance.setOnCheckedChangeListener((buttonView, isChecked) -> adapter.setAll(isChecked));
         btnClear.setOnClickListener(v -> adapter.setAll(false));
-        btnSave.setOnClickListener(v -> adapter.setEditable(false));
         btnEdit.setOnClickListener(v -> adapter.setEditable(true));
+
+        // 🔥 SAVE BUTTON LOGIC
+        btnSave.setOnClickListener(v -> {
+            if (validateInputs()) {
+                saveAttendanceToFirestore();
+            }
+        });
     }
 
+    // ---------------------------------------------------------
+    //  🔥 FIRESTORE SAVING LOGIC
+    // ---------------------------------------------------------
 
-    // 🔹 Helper method to restore 1st Year data
+    private boolean validateInputs() {
+        if (etDate.getText().toString().isEmpty()) {
+            Toast.makeText(this, "Please select a Date", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        if (etFromTime.getText().toString().isEmpty() || etToTime.getText().toString().isEmpty()) {
+            Toast.makeText(this, "Please select Session Time", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        if (spinnerSubject.getSelectedItem() == null) {
+            Toast.makeText(this, "Please select a Subject", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        return true;
+    }
+
+    private void saveAttendanceToFirestore() {
+        btnSave.setEnabled(false);
+        btnSave.setText("Saving...");
+
+        // A. Prepare the list of students with their status
+        List<Map<String, Object>> attendanceRecords = new ArrayList<>();
+        int presentCount = 0;
+
+        for (Student s : studentList) {
+            Map<String, Object> studentMap = new HashMap<>();
+            studentMap.put("roll", s.getRoll());
+            studentMap.put("name", s.getName());
+
+            // Check status
+            boolean isPresent = s.isPresent();
+            studentMap.put("status", isPresent ? "P" : "A");
+
+            if(isPresent) presentCount++;
+
+            attendanceRecords.add(studentMap);
+        }
+
+        // B. Parse Date String to Real Date Object
+        Date dateForQuery = parseDate(etDate.getText().toString());
+
+        // C. Create the Session Document
+        Map<String, Object> sessionMap = new HashMap<>();
+        sessionMap.put("subject", spinnerSubject.getSelectedItem().toString());
+        sessionMap.put("batch", currentYearBatch); // "1st Year", etc.
+        sessionMap.put("dateStr", etDate.getText().toString()); // For display (e.g., 21/01/2026)
+        sessionMap.put("timestamp", dateForQuery); // CRITICAL: For Date Range Query
+        sessionMap.put("startTime", etFromTime.getText().toString());
+        sessionMap.put("endTime", etToTime.getText().toString());
+        sessionMap.put("totalStudents", studentList.size());
+        sessionMap.put("presentCount", presentCount);
+        sessionMap.put("attendanceData", attendanceRecords); // Store the array
+
+        // D. Push to Firestore
+        db.collection("attendance_sessions")
+                .add(sessionMap)
+                .addOnSuccessListener(documentReference -> {
+                    Toast.makeText(MarkAttendanceActivity.this, "Attendance Saved Successfully!", Toast.LENGTH_SHORT).show();
+                    adapter.setEditable(false); // Lock editing
+                    finish();
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(MarkAttendanceActivity.this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    btnSave.setEnabled(true);
+                    btnSave.setText("SAVE");
+                });
+    }
+
+    private Date parseDate(String dateStr) {
+        try {
+            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+            return sdf.parse(dateStr);
+        } catch (ParseException e) {
+            return new Date(); // Fallback to current time
+        }
+    }
+
+    // ---------------------------------------------------------
+    //  UI HELPERS
+    // ---------------------------------------------------------
+    private void showTimePicker(EditText editText) {
+        Calendar calendar = Calendar.getInstance();
+        int hour = calendar.get(Calendar.HOUR_OF_DAY);
+        int minute = calendar.get(Calendar.MINUTE);
+        TimePickerDialog dialog = new TimePickerDialog(this, (view, hourOfDay, minute1) -> {
+            String time = String.format(Locale.getDefault(), "%02d:%02d", hourOfDay, minute1);
+            editText.setText(time);
+        }, hour, minute, false);
+        dialog.show();
+    }
+
+    private void showDatePicker() {
+        Calendar calendar = Calendar.getInstance();
+        int year = calendar.get(Calendar.YEAR);
+        int month = calendar.get(Calendar.MONTH);
+        int day = calendar.get(Calendar.DAY_OF_MONTH);
+        DatePickerDialog dialog = new DatePickerDialog(this, (view, selectedYear, selectedMonth, selectedDay) -> {
+            String date = String.format(Locale.getDefault(), "%02d/%02d/%04d", selectedDay, selectedMonth + 1, selectedYear);
+            etDate.setText(date);
+        }, year, month, day);
+        dialog.show();
+    }
+
+    // ---------------------------------------------------------
+    //  FULL STUDENT DATA
+    // ---------------------------------------------------------
+
     private void load1stYearStudents() {
         studentList.clear();
         studentList.add(new Student(1, "BOLE MAHESH GULABRAO", true));
@@ -163,12 +294,8 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         studentList.add(new Student(69, "PATIL SIDDHI VIJAY", true));
     }
 
-
-
-    // 🔹 Helper method to load 2nd year data from PDF
     private void load2ndYearStudents() {
         studentList.clear();
-        // Data extracted from Roll List CO4K.pdf
         studentList.add(new Student(1, "INGLE SWAPNIL SIDDHARTH", true));
         studentList.add(new Student(2, "LAHUDKAR VAISHNAVI SUNIL", true));
         studentList.add(new Student(3, "MENGADE PAVAN PARMESHWAR", true));
@@ -245,10 +372,9 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         studentList.add(new Student(74, "TIKAR PURVA RAJENDRA", true));
         studentList.add(new Student(75, "WAGH SHUBHAM SHANKAR", true));
     }
-    // 🔹 Helper method to load 3rd year data from PDF
+
     private void load3rdYearStudents() {
         studentList.clear();
-        // Data extracted from CO6K Roll List.pdf
         studentList.add(new Student(1, "MOHAMMAD WASIF SHAIKH MUKHTAR", true));
         studentList.add(new Student(2, "BAHEKAR BHAKTI RAMESH", true));
         studentList.add(new Student(3, "BHAGAT ATHARV VINOD", true));
@@ -312,29 +438,5 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         studentList.add(new Student(61, "THAKARE AYUSH BHASKAR", true));
         studentList.add(new Student(62, "ALI SHIFA MOHD ATHAR", true));
         studentList.add(new Student(63, "WANKHADE PRATIKSHA SHYAM", true));
-    }
-
-    // TIME PICKER & DATE PICKER METHODS (Keep exactly as they were in your code)
-    private void showTimePicker(EditText editText) {
-        Calendar calendar = Calendar.getInstance();
-        int hour = calendar.get(Calendar.HOUR_OF_DAY);
-        int minute = calendar.get(Calendar.MINUTE);
-        TimePickerDialog dialog = new TimePickerDialog(this, (view, hourOfDay, minute1) -> {
-            String time = String.format("%02d:%02d", hourOfDay, minute1);
-            editText.setText(time);
-        }, hour, minute, false);
-        dialog.show();
-    }
-
-    private void showDatePicker() {
-        Calendar calendar = Calendar.getInstance();
-        int year = calendar.get(Calendar.YEAR);
-        int month = calendar.get(Calendar.MONTH);
-        int day = calendar.get(Calendar.DAY_OF_MONTH);
-        DatePickerDialog dialog = new DatePickerDialog(this, (view, selectedYear, selectedMonth, selectedDay) -> {
-            String date = String.format("%02d/%02d/%04d", selectedDay, selectedMonth + 1, selectedYear);
-            etDate.setText(date);
-        }, year, month, day);
-        dialog.show();
     }
 }
