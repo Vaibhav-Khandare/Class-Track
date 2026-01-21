@@ -2,6 +2,11 @@
 
     <style name="Base.Theme.ClassTrack" parent="Theme.Material3.DayNight.NoActionBar">
     </style>
+    <style name="CircleImageStyle">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">50%</item>
+    </style>
+
 
     <style name="Theme.ClassTrack" parent="Base.Theme.ClassTrack" />
 

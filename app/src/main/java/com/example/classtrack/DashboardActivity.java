@@ -90,6 +90,7 @@ public class DashboardActivity extends AppCompatActivity implements NavigationVi
             // Already on home, just close drawer
         } else if (id == R.id.nav_profile) {
             Toast.makeText(this, "Profile clicked", Toast.LENGTH_SHORT).show();
+            startActivity(new Intent(this, ProfileActivity.class));
         } else if (id == R.id.nav_settings) {
             Toast.makeText(this, "Settings clicked", Toast.LENGTH_SHORT).show();
         } else if (id == R.id.nav_logout) {
