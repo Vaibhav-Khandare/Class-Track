@@ -10,7 +10,6 @@ import android.graphics.pdf.PdfDocument;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
-import android.util.Log;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
@@ -35,7 +34,7 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
+import java.util.Calendar; // 🔥 THIS IMPORT WAS MISSING
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -56,6 +55,9 @@ public class ViewAttendanceActivity extends AppCompatActivity {
     private FirebaseFirestore db;
     private ReportAdapter adapter;
     private List<StudentReport> reportList;
+
+    // Store all unique dates for columns
+    private List<String> allSessionDates = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -90,7 +92,7 @@ public class ViewAttendanceActivity extends AppCompatActivity {
             if (reportList.isEmpty()) {
                 Toast.makeText(this, "No data to export!", Toast.LENGTH_SHORT).show();
             } else {
-                if (checkPermission()) exportToPdf();
+                if (checkPermission()) exportToPdfLandscape();
             }
         });
 
@@ -104,11 +106,13 @@ public class ViewAttendanceActivity extends AppCompatActivity {
     }
 
     private void setupDatePickers() {
+        // We pass the specific EditText (From or To) so the method knows which one to update
         etDateFrom.setOnClickListener(v -> showDatePicker(etDateFrom));
         etDateTo.setOnClickListener(v -> showDatePicker(etDateTo));
     }
 
     private void showDatePicker(EditText targetField) {
+        // 🔥 This requires java.util.Calendar import
         Calendar c = Calendar.getInstance();
         new DatePickerDialog(this, (view, year, month, day) -> {
             String date = String.format(Locale.getDefault(), "%02d/%02d/%04d", day, month + 1, year);
@@ -148,6 +152,7 @@ public class ViewAttendanceActivity extends AppCompatActivity {
         Date startDate = parseDate(fromDateStr);
         Date endDate = parseDate(toDateStr);
 
+        // Add 1 day to end date to ensure the query includes the full last day
         Calendar c = Calendar.getInstance();
         c.setTime(endDate);
         c.add(Calendar.DATE, 1);
@@ -164,14 +169,24 @@ public class ViewAttendanceActivity extends AppCompatActivity {
                     totalLecturesCount = querySnapshot.size();
                     tvTotalLectures.setText("Total Lectures: " + totalLecturesCount);
 
+                    allSessionDates.clear();
                     Map<String, StudentReport> aggregationMap = new HashMap<>();
 
                     for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                        // Collect Date
+                        String sessionDate = doc.getString("dateStr");
+                        if (!allSessionDates.contains(sessionDate)) {
+                            allSessionDates.add(sessionDate);
+                        }
+
                         List<Map<String, Object>> studentsInSession = (List<Map<String, Object>>) doc.get("attendanceData");
 
                         if (studentsInSession != null) {
                             for (Map<String, Object> studentMap : studentsInSession) {
-                                int roll = ((Long) studentMap.get("roll")).intValue();
+                                // Safe casting for Roll number
+                                Long rollLong = (Long) studentMap.get("roll");
+                                int roll = (rollLong != null) ? rollLong.intValue() : 0;
+
                                 String name = (String) studentMap.get("name");
                                 String status = (String) studentMap.get("status");
 
@@ -180,12 +195,20 @@ public class ViewAttendanceActivity extends AppCompatActivity {
                                 if (!aggregationMap.containsKey(key)) {
                                     aggregationMap.put(key, new StudentReport(roll, name, 0));
                                 }
-                                if ("P".equals(status)) {
-                                    aggregationMap.get(key).incrementPresent();
+
+                                StudentReport report = aggregationMap.get(key);
+                                if (report != null) {
+                                    report.setStatusForDate(sessionDate, status);
+                                    if ("P".equals(status)) {
+                                        report.incrementPresent();
+                                    }
                                 }
                             }
                         }
                     }
+
+                    // Sort dates properly
+                    sortDates(allSessionDates);
 
                     reportList = new ArrayList<>(aggregationMap.values());
                     Collections.sort(reportList, (o1, o2) -> Integer.compare(o1.getRoll(), o2.getRoll()));
@@ -206,132 +229,192 @@ public class ViewAttendanceActivity extends AppCompatActivity {
     }
 
     // ----------------------------------------------------
-    // 📄 UPDATED PDF EXPORT (Fixes 49 student limit)
+    // 📄 LANDSCAPE PDF EXPORT
     // ----------------------------------------------------
 
-    private void exportToPdf() {
+    private void exportToPdfLandscape() {
         PdfDocument pdfDocument = new PdfDocument();
         Paint paint = new Paint();
         Paint titlePaint = new Paint();
+        Paint tableLinePaint = new Paint();
+        tableLinePaint.setColor(Color.LTGRAY);
+        tableLinePaint.setStrokeWidth(1f);
 
-        // Page Configuration
-        int pageWidth = 1120;
-        int pageHeight = 2000;
+        int pageWidth = 1684; // A4 Landscape roughly doubled
+        int pageHeight = 1190;
         int pageNumber = 1;
 
-        PdfDocument.PageInfo myPageInfo = new PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create();
-        PdfDocument.Page myPage = pdfDocument.startPage(myPageInfo);
-        Canvas canvas = myPage.getCanvas();
+        int MAX_DATES_PER_PAGE = 10;
+        int totalDates = Math.max(1, allSessionDates.size());
 
-        // --- DRAW HEADER (Function to keep it consistent) ---
-        drawPdfHeader(canvas, titlePaint, paint, pageNumber);
+        // Loop through chunks of dates (Horizontal Pagination)
+        for (int i = 0; i < totalDates; i += MAX_DATES_PER_PAGE) {
 
-        paint.setTextSize(20);
-        paint.setColor(Color.BLACK);
+            int endIndex = Math.min(i + MAX_DATES_PER_PAGE, allSessionDates.size());
+            List<String> currentBatchDates = new ArrayList<>();
+            if(!allSessionDates.isEmpty()) {
+                currentBatchDates = allSessionDates.subList(i, endIndex);
+            }
+            boolean isLastBatch = (endIndex >= allSessionDates.size());
 
-        // Start Y position for student rows
-        int y = 250;
+            // Start first page for this batch
+            PdfDocument.PageInfo myPageInfo = new PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create();
+            PdfDocument.Page myPage = pdfDocument.startPage(myPageInfo);
+            Canvas canvas = myPage.getCanvas();
 
-        for (StudentReport s : reportList) {
-            // 🛑 CHECK IF PAGE IS FULL
-            if (y > 1850) {
-                // 1. Finish current page
-                pdfDocument.finishPage(myPage);
+            drawLandscapeHeader(canvas, titlePaint, paint, pageNumber, currentBatchDates, isLastBatch);
 
-                // 2. Increment page number & create new page
-                pageNumber++;
-                myPageInfo = new PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create();
-                myPage = pdfDocument.startPage(myPageInfo);
-                canvas = myPage.getCanvas();
+            paint.setTextSize(20);
+            paint.setColor(Color.BLACK);
 
-                // 3. Draw Header on new page
-                drawPdfHeader(canvas, titlePaint, paint, pageNumber);
+            int y = 280;
 
-                // 4. Reset Y position
-                y = 250;
+            // Loop through students (Vertical Pagination)
+            for (StudentReport s : reportList) {
+                // If page is full, start new page BUT keep same date batch
+                if (y > pageHeight - 100) {
+                    pdfDocument.finishPage(myPage);
+                    pageNumber++;
+                    myPageInfo = new PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create();
+                    myPage = pdfDocument.startPage(myPageInfo);
+                    canvas = myPage.getCanvas();
+                    drawLandscapeHeader(canvas, titlePaint, paint, pageNumber, currentBatchDates, isLastBatch);
+                    y = 280;
+                }
+
+                // Draw Fixed Columns
+                canvas.drawText(String.valueOf(s.getRoll()), 50, y, paint);
+
+                String name = s.getName();
+                if(name.length() > 25) name = name.substring(0, 22) + "...";
+                canvas.drawText(name, 120, y, paint);
+
+                // Draw Date Columns
+                int xDate = 450;
+                for (String date : currentBatchDates) {
+                    String status = s.getStatusForDate(date);
+
+                    if(status.equals("P")) paint.setColor(Color.parseColor("#2E7D32")); // Green
+                    else if(status.equals("A")) paint.setColor(Color.RED);
+                    else paint.setColor(Color.BLACK);
+
+                    canvas.drawText(status, xDate + 10, y, paint);
+                    paint.setColor(Color.BLACK);
+                    xDate += 90;
+                }
+
+                // Draw Stats ONLY on the last batch of dates
+                if (isLastBatch) {
+                    int xStats = 450 + (currentBatchDates.size() * 90) + 20;
+                    if(currentBatchDates.isEmpty()) xStats = 450;
+
+                    canvas.drawText(s.getPresentCount() + "", xStats, y, paint);
+                    canvas.drawText(totalLecturesCount + "", xStats + 100, y, paint);
+
+                    int percent = (totalLecturesCount > 0) ? (s.getPresentCount() * 100) / totalLecturesCount : 0;
+                    canvas.drawText(percent + "%", xStats + 200, y, paint);
+                }
+
+                canvas.drawLine(40, y + 15, pageWidth - 40, y + 15, tableLinePaint);
+                y += 45;
             }
 
-            // Draw Student Row
-            canvas.drawText(String.valueOf(s.getRoll()), 50, y, paint);
-            canvas.drawText(s.getName(), 150, y, paint);
-            canvas.drawText(s.getPresentCount() + "/" + totalLecturesCount, 700, y, paint);
-
-            int percent = (totalLecturesCount > 0) ? (s.getPresentCount() * 100) / totalLecturesCount : 0;
-            canvas.drawText(percent + "%", 900, y, paint);
-
-            y += 40; // Move down for next student
+            pdfDocument.finishPage(myPage);
+            pageNumber++;
         }
 
-        pdfDocument.finishPage(myPage);
-
-        // ✅ NEW FILENAME LOGIC
-        String subjectName = spinnerSubject.getSelectedItem().toString();
-        // Removes spaces for clean filename
-        String safeSubjectName = subjectName.replaceAll("\\s+", "_");
-        String fileName = safeSubjectName + "_Attendance_Report.pdf";
-
-        File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), fileName);
-
-        try {
-            pdfDocument.writeTo(new FileOutputStream(file));
-            Toast.makeText(this, "PDF Saved to Downloads: " + fileName, Toast.LENGTH_LONG).show();
-        } catch (IOException e) {
-            Toast.makeText(this, "Error saving PDF: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-        }
-        pdfDocument.close();
+        savePdfFile(pdfDocument);
     }
 
-    // Helper to draw the top part of the PDF page
-    private void drawPdfHeader(Canvas canvas, Paint titlePaint, Paint paint, int pageNum) {
-        titlePaint.setTextSize(30);
+    private void drawLandscapeHeader(Canvas canvas, Paint titlePaint, Paint paint, int pageNum, List<String> dates, boolean isLastBatch) {
+        titlePaint.setTextSize(36);
         titlePaint.setColor(Color.BLUE);
         titlePaint.setFakeBoldText(true);
         canvas.drawText("Attendance Report - " + selectedYear, 50, 60, titlePaint);
 
-        paint.setTextSize(20);
+        paint.setTextSize(24);
         paint.setColor(Color.BLACK);
-        canvas.drawText("Subject: " + spinnerSubject.getSelectedItem().toString(), 50, 100, paint);
-        canvas.drawText("Total Lectures: " + totalLecturesCount, 50, 130, paint);
-        canvas.drawText("Page: " + pageNum, 900, 60, paint);
+        canvas.drawText("Subject: " + spinnerSubject.getSelectedItem().toString(), 50, 110, paint);
+        canvas.drawText("Total Lectures: " + totalLecturesCount, 50, 150, paint);
+        canvas.drawText("Page: " + pageNum, 1500, 60, paint);
 
-        // Header Row
+        // Header Background
+        Paint bgPaint = new Paint();
+        bgPaint.setColor(Color.parseColor("#E0E0E0"));
+        canvas.drawRect(40, 190, 1640, 240, bgPaint);
+
+        // Header Text
         paint.setFakeBoldText(true);
-        int yHeader = 180;
+        int yHeader = 220;
         canvas.drawText("Roll", 50, yHeader, paint);
-        canvas.drawText("Name", 150, yHeader, paint);
-        canvas.drawText("Attended", 700, yHeader, paint);
-        canvas.drawText("%", 900, yHeader, paint);
-        canvas.drawLine(50, yHeader + 10, 1050, yHeader + 10, paint);
+        canvas.drawText("Name", 120, yHeader, paint);
 
+        // Date Headers
+        int xDate = 450;
+        for (String date : dates) {
+            String shortDate = date.length() >= 5 ? date.substring(0, 5) : date; // 21/01
+            canvas.drawText(shortDate, xDate, yHeader, paint);
+            xDate += 90;
+        }
+
+        // Stats Headers (Only on last batch)
+        if (isLastBatch) {
+            int xStats = 450 + (dates.size() * 90) + 20;
+            if(dates.isEmpty()) xStats = 450;
+
+            canvas.drawText("Attd", xStats, yHeader, paint);
+            canvas.drawText("Total", xStats + 100, yHeader, paint);
+            canvas.drawText("%", xStats + 200, yHeader, paint);
+        }
         paint.setFakeBoldText(false);
     }
 
+    private void savePdfFile(PdfDocument pdfDocument) {
+        String subjectName = spinnerSubject.getSelectedItem().toString().replaceAll("\\s+", "_");
+        String fileName = subjectName + "_Attendance_Report.pdf";
+        File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), fileName);
+
+        try {
+            pdfDocument.writeTo(new FileOutputStream(file));
+            Toast.makeText(this, "PDF Saved: Downloads/" + fileName, Toast.LENGTH_LONG).show();
+        } catch (IOException e) {
+            Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+        pdfDocument.close();
+    }
+
     // ----------------------------------------------------
-    // 📊 EXCEL EXPORT (CSV format renamed to .xls for convenience)
+    // 📊 EXCEL EXPORT
     // ----------------------------------------------------
 
     private void exportToExcel() {
         StringBuilder data = new StringBuilder();
-        // CSV Header
-        data.append("Roll No,Name,Present Count,Total Lectures,Percentage\n");
 
+        // 1. CSV Header
+        data.append("Roll,Name");
+        for (String date : allSessionDates) {
+            data.append(",").append(date);
+        }
+        data.append(",Attended,Total Lectures,Percentage\n");
+
+        // 2. Data Rows
         for (StudentReport s : reportList) {
+            data.append(s.getRoll()).append(",");
+            data.append("\"").append(s.getName()).append("\",");
+
+            for (String date : allSessionDates) {
+                data.append(s.getStatusForDate(date)).append(",");
+            }
+
             int percent = (totalLecturesCount > 0) ? (s.getPresentCount() * 100) / totalLecturesCount : 0;
-            data.append(s.getRoll()).append(",")
-                    .append(s.getName()).append(",")
-                    .append(s.getPresentCount()).append(",")
+            data.append(s.getPresentCount()).append(",")
                     .append(totalLecturesCount).append(",")
                     .append(percent).append("%").append("\n");
         }
 
         try {
-            // ✅ NEW FILENAME LOGIC
-            String subjectName = spinnerSubject.getSelectedItem().toString();
-            String safeSubjectName = subjectName.replaceAll("\\s+", "_");
-            String fileName = safeSubjectName + "_Attendance_Report.csv";
-
-            // NOTE: We use .csv because true .xlsx requires heavy external libraries.
-            // .csv opens perfectly in Excel, Google Sheets, and WPS Office.
+            String subjectName = spinnerSubject.getSelectedItem().toString().replaceAll("\\s+", "_");
+            String fileName = subjectName + "_Attendance_Report.csv";
 
             File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), fileName);
 
@@ -340,11 +423,22 @@ public class ViewAttendanceActivity extends AppCompatActivity {
             writer.flush();
             writer.close();
 
-            Toast.makeText(this, "Excel Saved to Downloads: " + fileName, Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Excel Saved: Downloads/" + fileName, Toast.LENGTH_LONG).show();
 
         } catch (IOException e) {
             Toast.makeText(this, "Error saving Excel: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
+    }
+
+    private void sortDates(List<String> dates) {
+        Collections.sort(dates, (d1, d2) -> {
+            try {
+                SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+                return sdf.parse(d1).compareTo(sdf.parse(d2));
+            } catch (ParseException e) {
+                return 0;
+            }
+        });
     }
 
     private boolean checkPermission() {
