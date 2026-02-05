@@ -47,6 +47,12 @@
             android:name=".ProfileActivity"
             android:exported="false" />
 
+        <activity android:name=".AdminDashboardActivity"
+            android:exported="false" />
+
+        <activity android:name=".UploadStudentListActivity"
+            android:exported="false" />
+        <activity android:name=".UploadFileActivity" android:exported="false" />
 
     </application>
 

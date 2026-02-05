@@ -52,12 +52,18 @@ public class DashboardActivity extends AppCompatActivity implements NavigationVi
         navigationView.setNavigationItemSelectedListener(this);
         // --------------------
 
-        // Fetch teacher name
+        // Fetch teacher name and HOD status
         SharedPreferences prefs = getSharedPreferences("TeacherPrefs", MODE_PRIVATE);
         String name = prefs.getString("username", "Teacher");
+        boolean isHod = prefs.getBoolean("isHod", false); // Default to false if not found
 
         tvWelcome = findViewById(R.id.tvWelcome);
         tvWelcome.setText("Welcome, " + name);
+
+        // 🔥 HOD LOGIC: If user is HOD, reveal the hidden upload option
+        if (isHod) {
+            navigationView.getMenu().findItem(R.id.nav_upload_pdf).setVisible(true);
+        }
 
         // Initialize Buttons
         btnMark1 = findViewById(R.id.btnMark1);
@@ -77,6 +83,7 @@ public class DashboardActivity extends AppCompatActivity implements NavigationVi
         btnView1.setOnClickListener(v -> startActivity(new Intent(this, ViewAttendanceActivity.class).putExtra("YEAR", "1st Year")));
         btnView2.setOnClickListener(v -> startActivity(new Intent(this, ViewAttendanceActivity.class).putExtra("YEAR", "2nd Year")));
         btnView3.setOnClickListener(v -> startActivity(new Intent(this, ViewAttendanceActivity.class).putExtra("YEAR", "3rd Year")));
+
         // Main Logout Button Logic
         btnLogout.setOnClickListener(v -> performLogout());
     }
@@ -89,10 +96,11 @@ public class DashboardActivity extends AppCompatActivity implements NavigationVi
         if (id == R.id.nav_home) {
             // Already on home, just close drawer
         } else if (id == R.id.nav_profile) {
-            Toast.makeText(this, "Profile clicked", Toast.LENGTH_SHORT).show();
             startActivity(new Intent(this, ProfileActivity.class));
+        } else if (id == R.id.nav_upload_pdf) {
+            // 🔥 HOD Feature: Open Upload Activity
+            startActivity(new Intent(this, UploadStudentListActivity.class));
         } else if (id == R.id.nav_settings) {
-            Toast.makeText(this, "Settings clicked", Toast.LENGTH_SHORT).show();
             startActivity(new Intent(this, SettingsActivity.class));
         } else if (id == R.id.nav_logout) {
             performLogout();

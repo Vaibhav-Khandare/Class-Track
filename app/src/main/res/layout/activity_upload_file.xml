@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:gravity="center"
+    android:background="#F5F7FA">
+
+    <TextView
+        android:id="@+id/tvHeader"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Upload List"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:textColor="#1A237E"
+        android:gravity="center"
+        android:layout_marginBottom="32dp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Select Year Batch:"
+        android:textStyle="bold"
+        android:layout_marginBottom="8dp"/>
+
+    <Spinner
+        android:id="@+id/spinnerYear"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:background="@android:drawable/btn_dropdown"
+        android:layout_marginBottom="24dp"/>
+
+    <Button
+        android:id="@+id/btnPickPdf"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:text="Select PDF File"
+        android:backgroundTint="#1A237E"/>
+
+    <TextView
+        android:id="@+id/tvFileName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="No file selected"
+        android:layout_marginTop="16dp"
+        android:textSize="16sp"/>
+
+    <Button
+        android:id="@+id/btnUpload"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:text="UPLOAD TO DATABASE"
+        android:backgroundTint="#2E7D32"
+        android:layout_marginTop="32dp"
+        android:enabled="false"/>
+
+</LinearLayout>

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#F5F7FA"
+    android:padding="24dp">
+
+    <TextView
+        android:id="@+id/tvAdminWelcome"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Welcome, Admin"
+        android:textColor="#1A237E"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="32dp"/>
+
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="4dp"
+        xmlns:app="http://schemas.android.com/apk/res-auto">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="24dp"
+            android:gravity="center">
+
+            <ImageView
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:src="@android:drawable/ic_menu_upload"
+                app:tint="#1A237E"
+                android:layout_marginBottom="8dp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Upload Student List"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="#333333"/>
+
+            <Button
+                android:id="@+id/btnUploadList"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Go to Upload"
+                android:layout_marginTop="12dp"
+                android:backgroundTint="#1A237E"/>
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+    <Button
+        android:id="@+id/btnAdminLogout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="LOGOUT"
+        android:backgroundTint="#D32F2F"
+        android:layout_marginTop="32dp"/>
+
+</LinearLayout>

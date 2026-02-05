@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F5F7FA"
+    android:padding="24dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center_horizontal">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="SELECT Branch to update\nStudent roll call list"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="#1A237E"
+            android:textAlignment="center"
+            android:layout_marginTop="20dp"
+            android:layout_marginBottom="40dp"/>
+
+        <Button
+            android:id="@+id/btnComputer"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:text="Computer 🖥️"
+            android:textSize="18sp"
+            android:backgroundTint="#FFFFFF"
+            android:textColor="#1A237E"
+            android:layout_marginBottom="16dp"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:elevation="4dp"/>
+
+        <Button
+            android:id="@+id/btnElectrical"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:text="Electrical ⚡"
+            android:textSize="18sp"
+            android:backgroundTint="#FFFFFF"
+            android:textColor="#1A237E"
+            android:layout_marginBottom="16dp"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:elevation="4dp"/>
+
+        <Button
+            android:id="@+id/btnCivil"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:text="Civil 🏗️"
+            android:textSize="18sp"
+            android:backgroundTint="#FFFFFF"
+            android:textColor="#1A237E"
+            android:layout_marginBottom="16dp"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:elevation="4dp"/>
+
+        <Button
+            android:id="@+id/btnElectronics"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:text="Electronics 🔌"
+            android:textSize="18sp"
+            android:backgroundTint="#FFFFFF"
+            android:textColor="#1A237E"
+            android:layout_marginBottom="16dp"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:elevation="4dp"/>
+
+        <Button
+            android:id="@+id/btnMechA"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:text="Mechanical A ⚙️"
+            android:textSize="18sp"
+            android:backgroundTint="#FFFFFF"
+            android:textColor="#1A237E"
+            android:layout_marginBottom="16dp"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:elevation="4dp"/>
+
+        <Button
+            android:id="@+id/btnMechB"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:text="Mechanical B ⚙️"
+            android:textSize="18sp"
+            android:backgroundTint="#FFFFFF"
+            android:textColor="#1A237E"
+            android:layout_marginBottom="16dp"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:elevation="4dp"/>
+
+    </LinearLayout>
+</ScrollView>
