@@ -10,7 +10,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.classtrack"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
@@ -55,6 +55,13 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
-
     implementation("androidx.core:core-splashscreen:1.0.1")
+
+    // Image Picker
+    implementation("com.github.dhaval2404:imagepicker:2.1")
+
+    // 🔥 EXCEL LIBRARIES (Must have all 3)
+    implementation("org.apache.poi:poi:5.2.3")
+    implementation("org.apache.poi:poi-ooxml:5.2.3")
+    implementation("javax.xml.stream:stax-api:1.0-2") // <--- VITAL FIX
 }

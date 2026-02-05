@@ -31,6 +31,7 @@
         <activity
             android:name=".RegisterActivity"
             android:exported="false" />
+        <activity android:name=".UploadFileActivity" />
         <activity
             android:name=".DashboardActivity"
             android:exported="false" />

@@ -36,7 +36,7 @@
         android:id="@+id/btnPickPdf"
         android:layout_width="match_parent"
         android:layout_height="60dp"
-        android:text="Select PDF File"
+        android:text="Select xlsx File"
         android:backgroundTint="#1A237E"/>
 
     <TextView

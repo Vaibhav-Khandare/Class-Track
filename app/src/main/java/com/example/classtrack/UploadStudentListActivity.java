@@ -24,7 +24,7 @@ public class UploadStudentListActivity extends AppCompatActivity {
     private void setupBranchButton(int btnId, String branchName) {
         Button btn = findViewById(btnId);
         btn.setOnClickListener(v -> {
-            // Go to the File Picker Screen, passing the Branch Name
+            // Pass the selected branch to the next screen
             Intent intent = new Intent(this, UploadFileActivity.class);
             intent.putExtra("BRANCH_NAME", branchName);
             startActivity(intent);
