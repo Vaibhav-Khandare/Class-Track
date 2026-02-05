@@ -27,7 +27,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         SplashScreen.installSplashScreen(this);
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main); // Ensure activity_main.xml does NOT have toggle buttons anymore
+        setContentView(R.layout.activity_main);
 
         try {
             FirebaseApp.initializeApp(this);
@@ -38,6 +38,7 @@ public class MainActivity extends AppCompatActivity {
             etPassword = findViewById(R.id.password);
             btnLogin = findViewById(R.id.loginbtn);
 
+            // 1. Check if already logged in
             checkExistingLogin();
 
             btnLogin.setOnClickListener(v -> loginWithUsername());
@@ -58,8 +59,8 @@ public class MainActivity extends AppCompatActivity {
         boolean isLoggedIn = prefs.getBoolean("isLoggedIn", false);
 
         if (currentUser != null && isLoggedIn) {
-            // Everyone goes to Dashboard. Dashboard will decide features.
-            startActivity(new Intent(this, DashboardActivity.class));
+            // 🔥 CHANGED: Go to Branch Selection instead of Dashboard
+            startActivity(new Intent(this, BranchSelectionActivity.class));
             finish();
         }
     }
@@ -74,7 +75,6 @@ public class MainActivity extends AppCompatActivity {
         btnLogin.setText("Finding User...");
         btnLogin.setEnabled(false);
 
-        // ALWAYS SEARCH IN "teachers" COLLECTION
         db.collection("teachers")
                 .whereEqualTo("username", usernameInput)
                 .get()
@@ -118,24 +118,22 @@ public class MainActivity extends AppCompatActivity {
     private void saveToPreferences(DocumentSnapshot document) {
         SharedPreferences.Editor editor = getSharedPreferences("TeacherPrefs", MODE_PRIVATE).edit();
 
-        // Fetch basic info
         String name = document.getString("name");
         String email = document.getString("email");
         String username = document.getString("username");
-
-        // 🔥 CHECK FOR HOD STATUS (Default to false)
         boolean isHod = Boolean.TRUE.equals(document.getBoolean("isHod"));
 
         editor.putString("teacherName", name != null ? name : "Unknown");
         editor.putString("username", username);
         editor.putString("email", email);
-        editor.putBoolean("isHod", isHod); // Save the status!
+        editor.putBoolean("isHod", isHod);
         editor.putBoolean("isLoggedIn", true);
         editor.apply();
 
         Toast.makeText(MainActivity.this, "Welcome " + (name != null ? name : "Teacher"), Toast.LENGTH_SHORT).show();
-        startActivity(new Intent(MainActivity.this, DashboardActivity.class));
-        finish();
 
+        // 🔥 CHANGED: Go to Branch Selection
+        startActivity(new Intent(MainActivity.this, BranchSelectionActivity.class));
+        finish();
     }
 }

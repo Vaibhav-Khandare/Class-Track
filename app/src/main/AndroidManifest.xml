@@ -52,7 +52,10 @@
 
         <activity android:name=".UploadStudentListActivity"
             android:exported="false" />
-        <activity android:name=".UploadFileActivity" android:exported="false" />
+
+
+        <activity android:name=".BranchSelectionActivity"
+            android:exported="false" />
 
     </application>
 
