@@ -1,45 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F5F7FA">
+    android:background="#F5F7FA"
+    android:orientation="vertical">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="20dp">
+        android:paddingStart="20dp"
+        android:paddingTop="20dp"
+        android:paddingEnd="20dp">
 
         <TextView
             android:id="@+id/tvTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
             android:text="1st Year - Mark Attendance"
-            android:textSize="22sp"
-            android:textStyle="bold"
             android:textColor="#1A237E"
-            android:layout_marginBottom="16dp" />
+            android:textSize="22sp"
+            android:textStyle="bold" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Subject"
-            android:textStyle="bold"
-            android:textColor="#333333" />
+            android:textColor="#333333"
+            android:textStyle="bold" />
 
         <Spinner
             android:id="@+id/spinnerSubject"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:entries="@array/subjects_1st_year"/>
+            android:entries="@array/subjects_1st_year" />
 
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
             android:text="Session Time"
-            android:textStyle="bold"
-            android:layout_marginTop="12dp" />
+            android:textStyle="bold" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -51,47 +54,47 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:hint="From"
-                android:focusable="false"/>
+                android:focusable="false"
+                android:hint="From" />
 
             <EditText
                 android:id="@+id/etToTime"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:hint="To"
-                android:focusable="false"/>
+                android:focusable="false"
+                android:hint="To" />
 
         </LinearLayout>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
             android:text="Date"
-            android:textStyle="bold"
-            android:layout_marginTop="12dp" />
+            android:textStyle="bold" />
 
         <EditText
             android:id="@+id/etDate"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Select Date"
-            android:focusable="false"/>
+            android:focusable="false"
+            android:hint="Select Date" />
 
         <ToggleButton
             android:id="@+id/toggleAttendance"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textOn="All Present"
-            android:textOff="All Absent"
+            android:layout_marginTop="12dp"
             android:checked="true"
-            android:layout_marginTop="12dp"/>
-
+            android:textOff="All Absent"
+            android:textOn="All Present" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
+            android:layout_marginBottom="5dp"
             android:orientation="horizontal">
 
             <TextView
@@ -116,39 +119,42 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/recyclerStudents"
-            android:layout_width="match_parent"
-            android:layout_height="300dp"
-            android:layout_marginTop="8dp"/>
-
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:orientation="horizontal">
-
-            <Button
-                android:id="@+id/btnClear"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Clear All"
-                android:textColor="#FFFFFF"
-                android:backgroundTint="#757575" />
-
-            <Button
-                android:layout_width="0dp"
-                android:id="@+id/btnSave"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="10dp"
-                android:text="Save"
-                android:textColor="#FFFFFF"
-                android:backgroundTint="#1A237E" />
-        </LinearLayout>
-
     </LinearLayout>
 
-</ScrollView>
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerStudents"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#F5F7FA"
+        android:orientation="horizontal"
+        android:padding="20dp">
+
+        <Button
+            android:id="@+id/btnClear"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#757575"
+            android:text="Clear All"
+            android:textColor="#FFFFFF" />
+
+        <Button
+            android:id="@+id/btnSave"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:backgroundTint="#1A237E"
+            android:text="Save"
+            android:textColor="#FFFFFF" />
+    </LinearLayout>
+
+</LinearLayout>
