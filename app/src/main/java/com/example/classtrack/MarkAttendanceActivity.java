@@ -2,7 +2,9 @@ package com.example.classtrack;
 
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
+import android.content.SharedPreferences; // 🔥 Added import
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
@@ -10,15 +12,14 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
-import android.util.Log;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
-import com.google.firebase.firestore.DocumentSnapshot;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -41,19 +42,26 @@ public class MarkAttendanceActivity extends AppCompatActivity {
     Button btnClear, btnSave;
     Spinner spinnerSubject;
 
-    // 🔥 Firestore Instance
     private FirebaseFirestore db;
-    private String currentYearBatch;
+    private String currentYearBatch; // e.g., "1st Year"
+    private String selectedBranch;   // e.g., "Computer", "Mechanical A"
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_mark_attendance);
 
-        // 1. Initialize Firestore
         db = FirebaseFirestore.getInstance();
 
-        // UI Initialization
+        // 1. Get Selected Branch from SharedPreferences
+        SharedPreferences prefs = getSharedPreferences("TeacherPrefs", MODE_PRIVATE);
+        selectedBranch = prefs.getString("selectedBranch", "Computer"); // Default to Computer
+
+        // 2. Get Year from Intent
+        currentYearBatch = getIntent().getStringExtra("YEAR");
+        if (currentYearBatch == null) currentYearBatch = "1st Year";
+
+        // Initialize UI
         tvTitle = findViewById(R.id.tvTitle);
         spinnerSubject = findViewById(R.id.spinnerSubject);
         etFromTime = findViewById(R.id.etFromTime);
@@ -66,15 +74,38 @@ public class MarkAttendanceActivity extends AppCompatActivity {
 
         studentList = new ArrayList<>();
 
-        // 2. Get Year from Intent (Default to 1st Year if null)
-        currentYearBatch = getIntent().getStringExtra("YEAR");
-        if (currentYearBatch == null) currentYearBatch = "1st Year";
+        // Update Title dynamically
+        tvTitle.setText(selectedBranch + " (" + currentYearBatch + ")");
 
-        tvTitle.setText(currentYearBatch + " - Mark Attendance");
+        // Setup Spinner
+        setupSpinner();
 
-        // 3. Setup Spinner (Subject List)
-        // We only switch the Spinner resource here. Data loading happens in fetchStudentsFromFirestore().
+        // Recycler Setup
+        adapter = new StudentAdapter(studentList);
+        recyclerStudents.setLayoutManager(new LinearLayoutManager(this));
+        recyclerStudents.setAdapter(adapter);
+
+        // 3. Fetch Data based on Branch + Year
+        fetchStudentsFromFirestore();
+
+        // Listeners
+        etFromTime.setOnClickListener(v -> showTimePicker(etFromTime));
+        etToTime.setOnClickListener(v -> showTimePicker(etToTime));
+        etDate.setOnClickListener(v -> showDatePicker());
+        toggleAttendance.setOnCheckedChangeListener((buttonView, isChecked) -> adapter.setAll(isChecked));
+        btnClear.setOnClickListener(v -> adapter.setAll(false));
+
+        btnSave.setOnClickListener(v -> {
+            if (validateInputs()) {
+                saveAttendanceToFirestore();
+            }
+        });
+    }
+
+    private void setupSpinner() {
         int subjectArrayResId;
+        // You might want to make subject arrays branch-specific later
+        // For now, using Year logic
         if (currentYearBatch.equals("2nd Year")) {
             subjectArrayResId = R.array.subjects_2nd_year;
         } else if (currentYearBatch.equals("3rd Year")) {
@@ -87,72 +118,48 @@ public class MarkAttendanceActivity extends AppCompatActivity {
                 subjectArrayResId, android.R.layout.simple_spinner_item);
         subjectAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerSubject.setAdapter(subjectAdapter);
-
-        // 4. Recycler Setup
-        adapter = new StudentAdapter(studentList);
-        recyclerStudents.setLayoutManager(new LinearLayoutManager(this));
-        recyclerStudents.setAdapter(adapter);
-
-        // 5. 🔥 FETCH STUDENTS FROM FIRESTORE
-        fetchStudentsFromFirestore();
-
-        // Event Listeners
-        etFromTime.setOnClickListener(v -> showTimePicker(etFromTime));
-        etToTime.setOnClickListener(v -> showTimePicker(etToTime));
-        etDate.setOnClickListener(v -> showDatePicker());
-
-        toggleAttendance.setOnCheckedChangeListener((buttonView, isChecked) -> adapter.setAll(isChecked));
-        btnClear.setOnClickListener(v -> adapter.setAll(false));
-
-        // Save Button Logic
-        btnSave.setOnClickListener(v -> {
-            if (validateInputs()) {
-                saveAttendanceToFirestore();
-            }
-        });
     }
 
     // ---------------------------------------------------------
-    //  🔥 NEW: FETCH DATA FROM FIRESTORE
+    //  🔥 DYNAMIC FETCH LOGIC
     // ---------------------------------------------------------
     private void fetchStudentsFromFirestore() {
-        // A. Map "1st Year" -> "co_1st" (Firestore Document Names)
-        String batchDocName = "";
-        if (currentYearBatch.equals("1st Year")) batchDocName = "co_1st";
-        else if (currentYearBatch.equals("2nd Year")) batchDocName = "co_2nd";
-        else if (currentYearBatch.equals("3rd Year")) batchDocName = "co_3rd";
-        else return;
+        // 1. Generate the Collection ID (e.g., "ma_1st", "co_2nd")
+        String batchDocName = getCollectionCode();
 
-        // B. Fetch: Student -> [batchDocName] -> student_list
+        if (batchDocName == null) {
+            Toast.makeText(this, "Error generating batch code", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        studentList.clear();
+        adapter.notifyDataSetChanged();
+
+        // 2. Fetch from: Student -> [batchDocName] -> student_list
         db.collection("Student")
                 .document(batchDocName)
                 .collection("student_list")
                 .orderBy("roll", Query.Direction.ASCENDING)
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
-                    studentList.clear();
                     if (!queryDocumentSnapshots.isEmpty()) {
                         for (DocumentSnapshot doc : queryDocumentSnapshots) {
-                            // Handle Roll No safely
-                            int roll;
+                            int roll = 0;
                             try {
                                 roll = doc.getLong("roll").intValue();
                             } catch (Exception e) {
-                                // Fallback: try parsing ID if 'roll' field is missing/string
                                 try {
                                     roll = Integer.parseInt(doc.getId());
-                                } catch (NumberFormatException nfe) {
-                                    roll = 0; // Last resort fallback
-                                }
+                                } catch (NumberFormatException ex) { }
                             }
 
                             String name = doc.getString("name");
-                            // Default status is true (Present)
                             studentList.add(new Student(roll, name, true));
                         }
                         adapter.notifyDataSetChanged();
                     } else {
-                        Toast.makeText(this, "No students found for " + currentYearBatch, Toast.LENGTH_SHORT).show();
+                        // 🔥 SPECIFIC REQUIREMENT: Toast if list is empty (e.g., Mechanical)
+                        Toast.makeText(this, "No roll list found for " + selectedBranch + " " + currentYearBatch, Toast.LENGTH_LONG).show();
                     }
                 })
                 .addOnFailureListener(e -> {
@@ -161,23 +168,36 @@ public class MarkAttendanceActivity extends AppCompatActivity {
                 });
     }
 
-    // ---------------------------------------------------------
-    //  🔥 FIRESTORE SAVING LOGIC (Saves the Session)
-    // ---------------------------------------------------------
+    // Helper to map Branch + Year to Firestore Doc ID
+    private String getCollectionCode() {
+        String yearSuffix = "";
+        if (currentYearBatch.equals("1st Year")) yearSuffix = "_1st";
+        else if (currentYearBatch.equals("2nd Year")) yearSuffix = "_2nd";
+        else if (currentYearBatch.equals("3rd Year")) yearSuffix = "_3rd";
+        else return null;
 
+        String branchPrefix = "gen"; // Default
+
+        // Must match names in BranchSelectionActivity
+        switch (selectedBranch) {
+            case "Computer": branchPrefix = "co"; break;
+            case "Electrical": branchPrefix = "el"; break;
+            case "Civil": branchPrefix = "cv"; break;
+            case "Electronics": branchPrefix = "ec"; break;
+            case "Mechanical A": branchPrefix = "ma"; break;
+            case "Mechanical B": branchPrefix = "mb"; break;
+        }
+
+        return branchPrefix + yearSuffix; // e.g., "ma_1st"
+    }
+
+    // ---------------------------------------------------------
+    //  SAVE LOGIC (Unchanged)
+    // ---------------------------------------------------------
     private boolean validateInputs() {
-        if (etDate.getText().toString().isEmpty()) {
-            Toast.makeText(this, "Please select a Date", Toast.LENGTH_SHORT).show();
-            return false;
-        }
-        if (etFromTime.getText().toString().isEmpty() || etToTime.getText().toString().isEmpty()) {
-            Toast.makeText(this, "Please select Session Time", Toast.LENGTH_SHORT).show();
-            return false;
-        }
-        if (spinnerSubject.getSelectedItem() == null) {
-            Toast.makeText(this, "Please select a Subject", Toast.LENGTH_SHORT).show();
-            return false;
-        }
+        if (etDate.getText().toString().isEmpty()) return false;
+        if (etFromTime.getText().toString().isEmpty() || etToTime.getText().toString().isEmpty()) return false;
+        if (spinnerSubject.getSelectedItem() == null) return false;
         return true;
     }
 
@@ -185,7 +205,6 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         btnSave.setEnabled(false);
         btnSave.setText("Saving...");
 
-        // A. Prepare the list of students with their status
         List<Map<String, Object>> attendanceRecords = new ArrayList<>();
         int presentCount = 0;
 
@@ -193,40 +212,34 @@ public class MarkAttendanceActivity extends AppCompatActivity {
             Map<String, Object> studentMap = new HashMap<>();
             studentMap.put("roll", s.getRoll());
             studentMap.put("name", s.getName());
-
-            // Check status
             boolean isPresent = s.isPresent();
             studentMap.put("status", isPresent ? "P" : "A");
-
-            if(isPresent) presentCount++;
-
+            if (isPresent) presentCount++;
             attendanceRecords.add(studentMap);
         }
 
-        // B. Parse Date String to Real Date Object
         Date dateForQuery = parseDate(etDate.getText().toString());
 
-        // C. Create the Session Document
         Map<String, Object> sessionMap = new HashMap<>();
         sessionMap.put("subject", spinnerSubject.getSelectedItem().toString());
-        sessionMap.put("batch", currentYearBatch); // "1st Year", etc.
+        sessionMap.put("batch", currentYearBatch);
+        sessionMap.put("branch", selectedBranch); // 🔥 Save Branch too
         sessionMap.put("dateStr", etDate.getText().toString());
-        sessionMap.put("timestamp", dateForQuery); // CRITICAL: For Date Range Query
+        sessionMap.put("timestamp", dateForQuery);
         sessionMap.put("startTime", etFromTime.getText().toString());
         sessionMap.put("endTime", etToTime.getText().toString());
         sessionMap.put("totalStudents", studentList.size());
         sessionMap.put("presentCount", presentCount);
-        sessionMap.put("attendanceData", attendanceRecords); // Store the array
+        sessionMap.put("attendanceData", attendanceRecords);
 
-        // D. Push to Firestore
         db.collection("attendance_sessions")
                 .add(sessionMap)
                 .addOnSuccessListener(documentReference -> {
-                    Toast.makeText(MarkAttendanceActivity.this, "Attendance Saved Successfully!", Toast.LENGTH_SHORT).show();
-                    finish(); // Close activity
+                    Toast.makeText(this, "Attendance Saved!", Toast.LENGTH_SHORT).show();
+                    finish();
                 })
                 .addOnFailureListener(e -> {
-                    Toast.makeText(MarkAttendanceActivity.this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                     btnSave.setEnabled(true);
                     btnSave.setText("SAVE");
                 });
@@ -241,29 +254,21 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         }
     }
 
-    // ---------------------------------------------------------
-    //  UI HELPERS
-    // ---------------------------------------------------------
     private void showTimePicker(EditText editText) {
         Calendar calendar = Calendar.getInstance();
-        int hour = calendar.get(Calendar.HOUR_OF_DAY);
-        int minute = calendar.get(Calendar.MINUTE);
-        TimePickerDialog dialog = new TimePickerDialog(this, (view, hourOfDay, minute1) -> {
-            String time = String.format(Locale.getDefault(), "%02d:%02d", hourOfDay, minute1);
+        TimePickerDialog dialog = new TimePickerDialog(this, (view, hourOfDay, minute) -> {
+            String time = String.format(Locale.getDefault(), "%02d:%02d", hourOfDay, minute);
             editText.setText(time);
-        }, hour, minute, false);
+        }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), false);
         dialog.show();
     }
 
     private void showDatePicker() {
         Calendar calendar = Calendar.getInstance();
-        int year = calendar.get(Calendar.YEAR);
-        int month = calendar.get(Calendar.MONTH);
-        int day = calendar.get(Calendar.DAY_OF_MONTH);
-        DatePickerDialog dialog = new DatePickerDialog(this, (view, selectedYear, selectedMonth, selectedDay) -> {
-            String date = String.format(Locale.getDefault(), "%02d/%02d/%04d", selectedDay, selectedMonth + 1, selectedYear);
+        DatePickerDialog dialog = new DatePickerDialog(this, (view, year, month, day) -> {
+            String date = String.format(Locale.getDefault(), "%02d/%02d/%04d", day, month + 1, year);
             etDate.setText(date);
-        }, year, month, day);
+        }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH));
         dialog.show();
     }
 }

@@ -34,7 +34,7 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar; // 🔥 THIS IMPORT WAS MISSING
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -106,13 +106,11 @@ public class ViewAttendanceActivity extends AppCompatActivity {
     }
 
     private void setupDatePickers() {
-        // We pass the specific EditText (From or To) so the method knows which one to update
         etDateFrom.setOnClickListener(v -> showDatePicker(etDateFrom));
         etDateTo.setOnClickListener(v -> showDatePicker(etDateTo));
     }
 
     private void showDatePicker(EditText targetField) {
-        // 🔥 This requires java.util.Calendar import
         Calendar c = Calendar.getInstance();
         new DatePickerDialog(this, (view, year, month, day) -> {
             String date = String.format(Locale.getDefault(), "%02d/%02d/%04d", day, month + 1, year);
@@ -152,7 +150,6 @@ public class ViewAttendanceActivity extends AppCompatActivity {
         Date startDate = parseDate(fromDateStr);
         Date endDate = parseDate(toDateStr);
 
-        // Add 1 day to end date to ensure the query includes the full last day
         Calendar c = Calendar.getInstance();
         c.setTime(endDate);
         c.add(Calendar.DATE, 1);
@@ -166,6 +163,20 @@ public class ViewAttendanceActivity extends AppCompatActivity {
                 .orderBy("timestamp", Query.Direction.ASCENDING)
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
+                    // 🔥 CHECK IF DATA IS EMPTY OR NOT
+                    if (querySnapshot.isEmpty()) {
+                        reportList.clear();
+                        totalLecturesCount = 0;
+                        if(adapter != null) adapter.notifyDataSetChanged(); // Clear UI if adapter exists
+                        tvTotalLectures.setText("Total Lectures: 0");
+
+                        btnShow.setEnabled(true);
+                        btnShow.setText("SHOW REPORT");
+                        Toast.makeText(this, "No records found for this date range", Toast.LENGTH_LONG).show();
+                        return;
+                    }
+
+                    // Process Data if found
                     totalLecturesCount = querySnapshot.size();
                     tvTotalLectures.setText("Total Lectures: " + totalLecturesCount);
 
@@ -173,7 +184,6 @@ public class ViewAttendanceActivity extends AppCompatActivity {
                     Map<String, StudentReport> aggregationMap = new HashMap<>();
 
                     for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
-                        // Collect Date
                         String sessionDate = doc.getString("dateStr");
                         if (!allSessionDates.contains(sessionDate)) {
                             allSessionDates.add(sessionDate);
@@ -183,7 +193,6 @@ public class ViewAttendanceActivity extends AppCompatActivity {
 
                         if (studentsInSession != null) {
                             for (Map<String, Object> studentMap : studentsInSession) {
-                                // Safe casting for Roll number
                                 Long rollLong = (Long) studentMap.get("roll");
                                 int roll = (rollLong != null) ? rollLong.intValue() : 0;
 
@@ -207,7 +216,6 @@ public class ViewAttendanceActivity extends AppCompatActivity {
                         }
                     }
 
-                    // Sort dates properly
                     sortDates(allSessionDates);
 
                     reportList = new ArrayList<>(aggregationMap.values());
@@ -218,6 +226,8 @@ public class ViewAttendanceActivity extends AppCompatActivity {
 
                     btnShow.setEnabled(true);
                     btnShow.setText("SHOW REPORT");
+
+                    // Success Message
                     Toast.makeText(this, "Report Loaded!", Toast.LENGTH_SHORT).show();
 
                 })
@@ -240,14 +250,13 @@ public class ViewAttendanceActivity extends AppCompatActivity {
         tableLinePaint.setColor(Color.LTGRAY);
         tableLinePaint.setStrokeWidth(1f);
 
-        int pageWidth = 1684; // A4 Landscape roughly doubled
+        int pageWidth = 1684;
         int pageHeight = 1190;
         int pageNumber = 1;
 
         int MAX_DATES_PER_PAGE = 10;
         int totalDates = Math.max(1, allSessionDates.size());
 
-        // Loop through chunks of dates (Horizontal Pagination)
         for (int i = 0; i < totalDates; i += MAX_DATES_PER_PAGE) {
 
             int endIndex = Math.min(i + MAX_DATES_PER_PAGE, allSessionDates.size());
@@ -257,7 +266,6 @@ public class ViewAttendanceActivity extends AppCompatActivity {
             }
             boolean isLastBatch = (endIndex >= allSessionDates.size());
 
-            // Start first page for this batch
             PdfDocument.PageInfo myPageInfo = new PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create();
             PdfDocument.Page myPage = pdfDocument.startPage(myPageInfo);
             Canvas canvas = myPage.getCanvas();
@@ -269,9 +277,7 @@ public class ViewAttendanceActivity extends AppCompatActivity {
 
             int y = 280;
 
-            // Loop through students (Vertical Pagination)
             for (StudentReport s : reportList) {
-                // If page is full, start new page BUT keep same date batch
                 if (y > pageHeight - 100) {
                     pdfDocument.finishPage(myPage);
                     pageNumber++;
@@ -282,19 +288,17 @@ public class ViewAttendanceActivity extends AppCompatActivity {
                     y = 280;
                 }
 
-                // Draw Fixed Columns
                 canvas.drawText(String.valueOf(s.getRoll()), 50, y, paint);
 
                 String name = s.getName();
                 if(name.length() > 25) name = name.substring(0, 22) + "...";
                 canvas.drawText(name, 120, y, paint);
 
-                // Draw Date Columns
                 int xDate = 450;
                 for (String date : currentBatchDates) {
                     String status = s.getStatusForDate(date);
 
-                    if(status.equals("P")) paint.setColor(Color.parseColor("#2E7D32")); // Green
+                    if(status.equals("P")) paint.setColor(Color.parseColor("#2E7D32"));
                     else if(status.equals("A")) paint.setColor(Color.RED);
                     else paint.setColor(Color.BLACK);
 
@@ -303,7 +307,6 @@ public class ViewAttendanceActivity extends AppCompatActivity {
                     xDate += 90;
                 }
 
-                // Draw Stats ONLY on the last batch of dates
                 if (isLastBatch) {
                     int xStats = 450 + (currentBatchDates.size() * 90) + 20;
                     if(currentBatchDates.isEmpty()) xStats = 450;
@@ -338,26 +341,22 @@ public class ViewAttendanceActivity extends AppCompatActivity {
         canvas.drawText("Total Lectures: " + totalLecturesCount, 50, 150, paint);
         canvas.drawText("Page: " + pageNum, 1500, 60, paint);
 
-        // Header Background
         Paint bgPaint = new Paint();
         bgPaint.setColor(Color.parseColor("#E0E0E0"));
         canvas.drawRect(40, 190, 1640, 240, bgPaint);
 
-        // Header Text
         paint.setFakeBoldText(true);
         int yHeader = 220;
         canvas.drawText("Roll", 50, yHeader, paint);
         canvas.drawText("Name", 120, yHeader, paint);
 
-        // Date Headers
         int xDate = 450;
         for (String date : dates) {
-            String shortDate = date.length() >= 5 ? date.substring(0, 5) : date; // 21/01
+            String shortDate = date.length() >= 5 ? date.substring(0, 5) : date;
             canvas.drawText(shortDate, xDate, yHeader, paint);
             xDate += 90;
         }
 
-        // Stats Headers (Only on last batch)
         if (isLastBatch) {
             int xStats = 450 + (dates.size() * 90) + 20;
             if(dates.isEmpty()) xStats = 450;
@@ -390,14 +389,12 @@ public class ViewAttendanceActivity extends AppCompatActivity {
     private void exportToExcel() {
         StringBuilder data = new StringBuilder();
 
-        // 1. CSV Header
         data.append("Roll,Name");
         for (String date : allSessionDates) {
             data.append(",").append(date);
         }
         data.append(",Attended,Total Lectures,Percentage\n");
 
-        // 2. Data Rows
         for (StudentReport s : reportList) {
             data.append(s.getRoll()).append(",");
             data.append("\"").append(s.getName()).append("\",");
