@@ -41,6 +41,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import android.content.ContentValues;
+import android.net.Uri;
+import android.provider.MediaStore;
+import java.io.OutputStream;
+
 
 public class ViewAttendanceActivity extends AppCompatActivity {
 
@@ -97,12 +102,16 @@ public class ViewAttendanceActivity extends AppCompatActivity {
         });
 
         btnPrintExcel.setOnClickListener(v -> {
-            if (reportList.isEmpty()) {
-                Toast.makeText(this, "No data to export!", Toast.LENGTH_SHORT).show();
-            } else {
-                if (checkPermission()) exportToExcel();
+
+            if (reportList == null || reportList.isEmpty()) {
+                Toast.makeText(this, "Report list empty", Toast.LENGTH_LONG).show();
+                return;
             }
+
+            exportToExcel();
         });
+
+
     }
 
     private void setupDatePickers() {
@@ -196,22 +205,36 @@ public class ViewAttendanceActivity extends AppCompatActivity {
                                 Long rollLong = (Long) studentMap.get("roll");
                                 int roll = (rollLong != null) ? rollLong.intValue() : 0;
 
+                                String enrollmentNo = (String) studentMap.get("enrollmentNo");
+
+
                                 String name = (String) studentMap.get("name");
                                 String status = (String) studentMap.get("status");
 
-                                String key = String.valueOf(roll);
+
+                                String key = enrollmentNo + "_" + roll;
 
                                 if (!aggregationMap.containsKey(key)) {
-                                    aggregationMap.put(key, new StudentReport(roll, name, 0));
+                                    aggregationMap.put(
+                                            key,
+                                            new StudentReport(enrollmentNo, roll, name, 0)
+                                    );
                                 }
 
                                 StudentReport report = aggregationMap.get(key);
                                 if (report != null) {
-                                    report.setStatusForDate(sessionDate, status);
-                                    if ("P".equals(status)) {
-                                        report.incrementPresent();
+
+                                    if (!report.hasDate(sessionDate)) {
+
+                                        report.setStatusForDate(sessionDate, status);
+
+                                        if ("P".equals(status)) {
+                                            report.incrementPresent();
+                                        }
                                     }
                                 }
+
+
                             }
                         }
                     }
@@ -369,68 +392,128 @@ public class ViewAttendanceActivity extends AppCompatActivity {
     }
 
     private void savePdfFile(PdfDocument pdfDocument) {
-        String subjectName = spinnerSubject.getSelectedItem().toString().replaceAll("\\s+", "_");
-        String fileName = subjectName + "_Attendance_Report.pdf";
-        File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), fileName);
 
         try {
-            pdfDocument.writeTo(new FileOutputStream(file));
-            Toast.makeText(this, "PDF Saved: Downloads/" + fileName, Toast.LENGTH_LONG).show();
-        } catch (IOException e) {
-            Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            String fileName = spinnerSubject.getSelectedItem()
+                    .toString().replaceAll("\\s+", "_")
+                    + "_Attendance_Report.pdf";
+
+            ContentValues values = new ContentValues();
+            values.put(MediaStore.MediaColumns.DISPLAY_NAME, fileName);
+            values.put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf");
+            values.put(MediaStore.MediaColumns.RELATIVE_PATH,
+                    Environment.DIRECTORY_DOWNLOADS);
+
+            Uri uri = getContentResolver().insert(
+                    MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+                    values
+            );
+
+            if (uri == null) {
+                Toast.makeText(this,
+                        "Failed to create PDF file",
+                        Toast.LENGTH_LONG).show();
+                return;
+            }
+
+            OutputStream os = getContentResolver().openOutputStream(uri);
+            pdfDocument.writeTo(os);
+            os.close();
+            pdfDocument.close();
+
+            Toast.makeText(this,
+                    "PDF saved in Downloads",
+                    Toast.LENGTH_LONG).show();
+
+        } catch (Exception e) {
+            Toast.makeText(this,
+                    "PDF Error: " + e.getMessage(),
+                    Toast.LENGTH_LONG).show();
         }
-        pdfDocument.close();
     }
+
 
     // ----------------------------------------------------
     // 📊 EXCEL EXPORT
     // ----------------------------------------------------
 
     private void exportToExcel() {
-        StringBuilder data = new StringBuilder();
 
-        data.append("Roll,Name");
-        for (String date : allSessionDates) {
-            data.append(",").append(date);
+        StringBuilder data = new StringBuilder();
+        data.append("Enrollment No,Roll No,Name");
+
+        for (String d : allSessionDates) {
+            data.append(",").append(d);
         }
+
         data.append(",Attended,Total Lectures,Percentage\n");
 
         for (StudentReport s : reportList) {
-            data.append(s.getRoll()).append(",");
-            data.append("\"").append(s.getName()).append("\",");
 
-            for (String date : allSessionDates) {
-                data.append(s.getStatusForDate(date)).append(",");
+            data.append(s.getEnrollmentNo()).append(",");
+            data.append(s.getRoll()).append(",");
+            data.append("\"").append(s.getName()).append("\"");
+
+            for (String d : allSessionDates) {
+                data.append(",").append(s.getStatusForDate(d));
             }
 
-            int percent = (totalLecturesCount > 0) ? (s.getPresentCount() * 100) / totalLecturesCount : 0;
-            data.append(s.getPresentCount()).append(",")
+            int percent = (totalLecturesCount > 0)
+                    ? (s.getPresentCount() * 100) / totalLecturesCount
+                    : 0;
+
+            data.append(",")
+                    .append(s.getPresentCount()).append(",")
                     .append(totalLecturesCount).append(",")
-                    .append(percent).append("%").append("\n");
+                    .append(percent).append("%\n");
         }
 
         try {
-            String subjectName = spinnerSubject.getSelectedItem().toString().replaceAll("\\s+", "_");
-            String fileName = subjectName + "_Attendance_Report.csv";
+            String fileName = spinnerSubject.getSelectedItem()
+                    .toString().replaceAll("\\s+", "_")
+                    + "_Attendance_Register.csv";
 
-            File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), fileName);
+            ContentValues values = new ContentValues();
+            values.put(MediaStore.MediaColumns.DISPLAY_NAME, fileName);
+            values.put(MediaStore.MediaColumns.MIME_TYPE, "text/csv");
+            values.put(MediaStore.MediaColumns.RELATIVE_PATH,
+                    Environment.DIRECTORY_DOWNLOADS);
 
-            FileWriter writer = new FileWriter(file);
-            writer.append(data.toString());
-            writer.flush();
-            writer.close();
+            Uri uri = getContentResolver().insert(
+                    MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+                    values
+            );
 
-            Toast.makeText(this, "Excel Saved: Downloads/" + fileName, Toast.LENGTH_LONG).show();
+            if (uri == null) {
+                Toast.makeText(this,
+                        "Failed to create file",
+                        Toast.LENGTH_LONG).show();
+                return;
+            }
 
-        } catch (IOException e) {
-            Toast.makeText(this, "Error saving Excel: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            OutputStream os = getContentResolver().openOutputStream(uri);
+            os.write(data.toString().getBytes());
+            os.close();
+
+            Toast.makeText(this,
+                    "Excel saved in Downloads",
+                    Toast.LENGTH_LONG).show();
+
+        } catch (Exception e) {
+            Toast.makeText(this,
+                    "Excel Error: " + e.getMessage(),
+                    Toast.LENGTH_LONG).show();
         }
     }
+
+
+    // ---------------- HELPERS ----------------
 
     private void sortDates(List<String> dates) {
         Collections.sort(dates, (d1, d2) -> {
             try {
-                SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+                SimpleDateFormat sdf =
+                        new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
                 return sdf.parse(d1).compareTo(sdf.parse(d2));
             } catch (ParseException e) {
                 return 0;
@@ -439,10 +522,9 @@ public class ViewAttendanceActivity extends AppCompatActivity {
     }
 
     private boolean checkPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            return true;
-        }
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) return true;
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE)
                 != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this,
                     new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 100);
@@ -451,11 +533,11 @@ public class ViewAttendanceActivity extends AppCompatActivity {
         return true;
     }
 
-    private Date parseDate(String dateStr) {
+    private Date parseDate(String s) {
         try {
-            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
-            return sdf.parse(dateStr);
-        } catch (ParseException e) {
+            return new SimpleDateFormat("dd/MM/yyyy",
+                    Locale.getDefault()).parse(s);
+        } catch (Exception e) {
             return new Date();
         }
     }

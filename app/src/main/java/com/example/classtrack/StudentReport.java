@@ -4,33 +4,52 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class StudentReport {
+
+    private String enrollmentNo;
     private int roll;
     private String name;
     private int presentCount;
-    // New: Map to store "21/01/2026" -> "P"
+
+    // date -> P / A
     private Map<String, String> dateStatusMap = new HashMap<>();
 
-    public StudentReport(int roll, String name, int presentCount) {
+    public StudentReport(String enrollmentNo, int roll, String name, int presentCount) {
+        this.enrollmentNo = enrollmentNo;
         this.roll = roll;
         this.name = name;
         this.presentCount = presentCount;
     }
 
-    public int getRoll() { return roll; }
-    public String getName() { return name; }
-    public int getPresentCount() { return presentCount; }
-
-    public void incrementPresent() {
-        this.presentCount++;
+    public String getEnrollmentNo() {
+        return enrollmentNo;
     }
 
-    // New methods for date-wise tracking
+    public int getRoll() {
+        return roll;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public int getPresentCount() {
+        return presentCount;
+    }
+
+    public void incrementPresent() {
+        presentCount++;
+    }
+
     public void setStatusForDate(String date, String status) {
         dateStatusMap.put(date, status);
     }
 
     public String getStatusForDate(String date) {
-        // Returns "P", "A", or "-" if not found
         return dateStatusMap.getOrDefault(date, "-");
+    }
+
+    // 🔴 IMPORTANT: duplicate increment stop
+    public boolean hasDate(String date) {
+        return dateStatusMap.containsKey(date);
     }
 }
