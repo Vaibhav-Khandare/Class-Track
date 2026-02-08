@@ -1,7 +1,38 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Base.Theme.ClassTrack" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your dark theme here. -->
-        <!-- <item name="colorPrimary">@color/my_dark_primary</item> -->
+
+    <style name="Base.Theme.ClassTrack" parent="Theme.Material3.Light.NoActionBar">
+
+        <item name="colorPrimary">#1A237E</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorSecondary">#2E7D32</item>
+        <item name="colorOnSecondary">#FFFFFF</item>
+
+        <item name="android:windowBackground">#F5F7FA</item>
+        <item name="android:colorBackground">#FFFFFF</item>
+        <item name="colorSurface">#FFFFFF</item>
+        <item name="colorOnSurface">#333333</item>
+        <item name="android:textColorPrimary">#333333</item>
+        <item name="android:textColorSecondary">#757575</item>
+        <item name="android:statusBarColor">#1A237E</item>
     </style>
+
+    <style name="Theme.ClassTrack" parent="Base.Theme.ClassTrack" />
+
+    <style name="CircleImageStyle">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">50%</item>
+    </style>
+
+    <style name="Theme.ClassTrack.Splash" parent="Theme.Material3.Light.NoActionBar">
+        <item name="android:windowBackground">@android:color/white</item>
+        <item name="android:statusBarColor">#1A237E</item>
+
+        <item name="android:windowSplashScreenBackground">@android:color/white</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_logo_adjusted</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">#FFFFFF</item>
+        <item name="android:windowSplashScreenAnimationDuration">1000</item>
+
+        <item name="postSplashScreenTheme">@style/Theme.ClassTrack</item>
+    </style>
+
 </resources>

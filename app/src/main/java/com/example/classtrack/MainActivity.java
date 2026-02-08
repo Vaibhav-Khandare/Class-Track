@@ -1,5 +1,6 @@
 package com.example.classtrack;
 
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.splashscreen.SplashScreen;
 import android.content.Intent;
@@ -26,6 +27,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         SplashScreen.installSplashScreen(this);
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -38,9 +40,13 @@ public class MainActivity extends AppCompatActivity {
             etPassword = findViewById(R.id.password);
             btnLogin = findViewById(R.id.loginbtn);
 
-            // 1. Check if already logged in
-            checkExistingLogin();
+            // 1. Check if already logged in when app starts
+            FirebaseUser currentUser = mAuth.getCurrentUser();
+            if (currentUser != null) {
+                navigateUser();
+            }
 
+            // 2. Login Button Logic
             btnLogin.setOnClickListener(v -> loginWithUsername());
 
             TextView tvRegister = findViewById(R.id.tvRegister);
@@ -50,18 +56,6 @@ public class MainActivity extends AppCompatActivity {
 
         } catch (Exception e) {
             Log.e("APP_CRASH", "Error: " + e.getMessage());
-        }
-    }
-
-    private void checkExistingLogin() {
-        FirebaseUser currentUser = mAuth.getCurrentUser();
-        SharedPreferences prefs = getSharedPreferences("TeacherPrefs", MODE_PRIVATE);
-        boolean isLoggedIn = prefs.getBoolean("isLoggedIn", false);
-
-        if (currentUser != null && isLoggedIn) {
-            // 🔥 CHANGED: Go to Branch Selection instead of Dashboard
-            startActivity(new Intent(this, BranchSelectionActivity.class));
-            finish();
         }
     }
 
@@ -82,21 +76,20 @@ public class MainActivity extends AppCompatActivity {
                     if (!queryDocumentSnapshots.isEmpty()) {
                         DocumentSnapshot document = queryDocumentSnapshots.getDocuments().get(0);
                         String emailFound = document.getString("email");
+
                         if (emailFound != null) {
                             performFirebaseAuth(emailFound, passwordInput, document);
                         } else {
-                            btnLogin.setEnabled(true);
+                            resetLoginButton();
                             Toast.makeText(this, "Error: Username has no email linked.", Toast.LENGTH_SHORT).show();
                         }
                     } else {
-                        btnLogin.setText("LOGIN");
-                        btnLogin.setEnabled(true);
+                        resetLoginButton();
                         etUsername.setError("Username not found");
                     }
                 })
                 .addOnFailureListener(e -> {
-                    btnLogin.setText("LOGIN");
-                    btnLogin.setEnabled(true);
+                    resetLoginButton();
                     Toast.makeText(this, "Database Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
     }
@@ -108,9 +101,9 @@ public class MainActivity extends AppCompatActivity {
                     if (task.isSuccessful()) {
                         saveToPreferences(userDoc);
                     } else {
-                        btnLogin.setText("LOGIN");
-                        btnLogin.setEnabled(true);
+                        resetLoginButton();
                         etPassword.setError("Wrong Password");
+                        Toast.makeText(this, "Auth Failed: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
                     }
                 });
     }
@@ -121,6 +114,7 @@ public class MainActivity extends AppCompatActivity {
         String name = document.getString("name");
         String email = document.getString("email");
         String username = document.getString("username");
+        String branch = document.getString("branch"); // Get branch from Firestore
         boolean isHod = Boolean.TRUE.equals(document.getBoolean("isHod"));
 
         editor.putString("teacherName", name != null ? name : "Unknown");
@@ -128,12 +122,37 @@ public class MainActivity extends AppCompatActivity {
         editor.putString("email", email);
         editor.putBoolean("isHod", isHod);
         editor.putBoolean("isLoggedIn", true);
+
+        // 🔥 THE FIX: Save the branch to SharedPreferences immediately!
+        if (branch != null && !branch.isEmpty()) {
+            editor.putString("selectedBranch", branch);
+        }
+
         editor.apply();
 
         Toast.makeText(MainActivity.this, "Welcome " + (name != null ? name : "Teacher"), Toast.LENGTH_SHORT).show();
 
-        // 🔥 CHANGED: Go to Branch Selection
-        startActivity(new Intent(MainActivity.this, BranchSelectionActivity.class));
+        navigateUser();
+    }
+
+    private void navigateUser() {
+        SharedPreferences prefs = getSharedPreferences("TeacherPrefs", MODE_PRIVATE);
+        String savedBranch = prefs.getString("selectedBranch", null);
+
+        Intent intent;
+        // Check if branch is already saved (either from Register or previous selection)
+        if (savedBranch != null && !savedBranch.isEmpty()) {
+            intent = new Intent(MainActivity.this, DashboardActivity.class);
+        } else {
+            intent = new Intent(MainActivity.this, BranchSelectionActivity.class);
+        }
+
+        startActivity(intent);
         finish();
+    }
+
+    private void resetLoginButton() {
+        btnLogin.setText("LOGIN AS TEACHER");
+        btnLogin.setEnabled(true);
     }
 }

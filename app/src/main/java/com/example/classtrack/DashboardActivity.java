@@ -16,14 +16,15 @@ import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 
 import com.google.android.material.navigation.NavigationView;
+import com.google.firebase.auth.FirebaseAuth;
 
 public class DashboardActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
-    // Existing UI variables
-    TextView tvWelcome;
+    // UI variables
+    TextView tvWelcome, tvDepartment;
     Button btnMark1, btnView1, btnMark2, btnView2, btnMark3, btnView3, btnLogout;
 
-    // New Drawer variables
+    // Drawer variables
     DrawerLayout drawerLayout;
     NavigationView navigationView;
     Toolbar toolbar;
@@ -38,29 +39,31 @@ public class DashboardActivity extends AppCompatActivity implements NavigationVi
         navigationView = findViewById(R.id.nav_view);
         toolbar = findViewById(R.id.toolbar);
 
-        // Setup Toolbar
         setSupportActionBar(toolbar);
 
-        // Setup Toggle (Hamburger Icon)
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
                 this, drawerLayout, toolbar,
                 R.string.navigation_drawer_open, R.string.navigation_drawer_close);
         drawerLayout.addDrawerListener(toggle);
         toggle.syncState();
 
-        // Setup Navigation Click Listener
         navigationView.setNavigationItemSelectedListener(this);
         // --------------------
 
-        // Fetch teacher name and HOD status
+        // 🔥 FETCH DATA FROM SHARED PREFS
         SharedPreferences prefs = getSharedPreferences("TeacherPrefs", MODE_PRIVATE);
         String name = prefs.getString("username", "Teacher");
-        boolean isHod = prefs.getBoolean("isHod", false); // Default to false if not found
+        String branch = prefs.getString("selectedBranch", "Unknown Department");
+        boolean isHod = prefs.getBoolean("isHod", false);
 
+        // Initialize and Set Text
         tvWelcome = findViewById(R.id.tvWelcome);
-        tvWelcome.setText("Welcome, " + name);
+        tvDepartment = findViewById(R.id.tvDepartment);
 
-        // 🔥 HOD LOGIC: If user is HOD, reveal the hidden upload option
+        tvWelcome.setText("Welcome, " + name);
+        tvDepartment.setText(branch + " Department");
+
+        // HOD Logic: Show upload option if HOD
         if (isHod) {
             navigationView.getMenu().findItem(R.id.nav_upload_pdf).setVisible(true);
         }
@@ -74,32 +77,42 @@ public class DashboardActivity extends AppCompatActivity implements NavigationVi
         btnView3 = findViewById(R.id.btnView3);
         btnLogout = findViewById(R.id.btnLogout);
 
-        // Button Listeners (Existing Logic)
+        // Button Listeners
         btnMark1.setOnClickListener(v -> startActivity(new Intent(this, MarkAttendanceActivity.class).putExtra("YEAR", "1st Year")));
         btnMark2.setOnClickListener(v -> startActivity(new Intent(this, MarkAttendanceActivity.class).putExtra("YEAR", "2nd Year")));
         btnMark3.setOnClickListener(v -> startActivity(new Intent(this, MarkAttendanceActivity.class).putExtra("YEAR", "3rd Year")));
 
-        // VIEW Button Listeners (New Logic)
         btnView1.setOnClickListener(v -> startActivity(new Intent(this, ViewAttendanceActivity.class).putExtra("YEAR", "1st Year")));
         btnView2.setOnClickListener(v -> startActivity(new Intent(this, ViewAttendanceActivity.class).putExtra("YEAR", "2nd Year")));
         btnView3.setOnClickListener(v -> startActivity(new Intent(this, ViewAttendanceActivity.class).putExtra("YEAR", "3rd Year")));
 
-        // Main Logout Button Logic
         btnLogout.setOnClickListener(v -> performLogout());
     }
 
-    // Handle Drawer Item Clicks
     @Override
     public boolean onNavigationItemSelected(@NonNull MenuItem item) {
         int id = item.getItemId();
 
         if (id == R.id.nav_home) {
-            // Already on home, just close drawer
+            // Already on home
         } else if (id == R.id.nav_profile) {
             startActivity(new Intent(this, ProfileActivity.class));
         } else if (id == R.id.nav_upload_pdf) {
-            // 🔥 HOD Feature: Open Upload Activity
-            startActivity(new Intent(this, UploadStudentListActivity.class));
+
+            // 🔥 HOD SMART UPLOAD LOGIC 🔥
+            SharedPreferences prefs = getSharedPreferences("TeacherPrefs", MODE_PRIVATE);
+            String savedBranch = prefs.getString("selectedBranch", null);
+
+            if (savedBranch != null && !savedBranch.isEmpty()) {
+                // Case 1: Branch is already known -> Go directly to File Upload screen
+                Intent intent = new Intent(this, UploadFileActivity.class);
+                intent.putExtra("BRANCH_NAME", savedBranch); // Pass the branch automatically
+                startActivity(intent);
+            } else {
+                // Case 2: Branch is unknown -> Go to Selection screen first
+                startActivity(new Intent(this, UploadStudentListActivity.class));
+            }
+
         } else if (id == R.id.nav_settings) {
             startActivity(new Intent(this, SettingsActivity.class));
         } else if (id == R.id.nav_logout) {
@@ -110,16 +123,18 @@ public class DashboardActivity extends AppCompatActivity implements NavigationVi
         return true;
     }
 
-    // Extracted Logout Logic to use in both Button and Drawer
     private void performLogout() {
+        FirebaseAuth.getInstance().signOut();
         SharedPreferences.Editor editor = getSharedPreferences("TeacherPrefs", MODE_PRIVATE).edit();
         editor.clear();
         editor.apply();
-        startActivity(new Intent(this, MainActivity.class));
+
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
         finish();
     }
 
-    // Handle Back Press to close drawer first
     @Override
     public void onBackPressed() {
         if (drawerLayout.isDrawerOpen(GravityCompat.START)) {

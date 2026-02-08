@@ -1,59 +1,250 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="24dp"
-    android:gravity="center"
     android:background="#F5F7FA">
 
-    <TextView
-        android:id="@+id/tvHeader"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Upload List"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        android:textColor="#1A237E"
-        android:gravity="center"
-        android:layout_marginBottom="32dp"/>
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Select Year Batch:"
-        android:textStyle="bold"
-        android:layout_marginBottom="8dp"/>
-
-    <Spinner
-        android:id="@+id/spinnerYear"
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
         android:layout_width="match_parent"
-        android:layout_height="50dp"
-        android:background="@android:drawable/btn_dropdown"
-        android:layout_marginBottom="24dp"/>
+        android:layout_height="?attr/actionBarSize"
+        android:background="#1A237E"
+        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
+        app:title="Upload Student List"
+        app:titleTextColor="@android:color/white"
+        app:elevation="4dp"/>
 
-    <Button
-        android:id="@+id/btnPickPdf"
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="60dp"
-        android:text="Select xlsx File"
-        android:backgroundTint="#1A237E"/>
+        android:layout_height="match_parent"
+        android:fillViewport="true">
 
-    <TextView
-        android:id="@+id/tvFileName"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="No file selected"
-        android:layout_marginTop="16dp"
-        android:textSize="16sp"/>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="24dp">
 
-    <Button
-        android:id="@+id/btnUpload"
-        android:layout_width="match_parent"
-        android:layout_height="60dp"
-        android:text="UPLOAD TO DATABASE"
-        android:backgroundTint="#2E7D32"
-        android:layout_marginTop="32dp"
-        android:enabled="false"/>
+            <TextView
+                android:id="@+id/tvHeader"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Import Student Data"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:textColor="#1A237E"
+                android:layout_marginBottom="4dp"/>
 
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Upload an Excel sheet to update the class roll list."
+                android:textSize="14sp"
+                android:textColor="#757575"
+                android:layout_marginBottom="24dp"/>
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="#E8EAF6"
+                app:strokeColor="#C5CAE9"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="8dp">
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@android:drawable/ic_menu_info_details"
+                            app:tint="#1A237E"/>
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="File Format Requirements"
+                            android:textStyle="bold"
+                            android:textColor="#1A237E"
+                            android:textSize="16sp"
+                            android:layout_marginStart="8dp"/>
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Your .xlsx file must have exactly 3 columns in this order:"
+                        android:textSize="14sp"
+                        android:textColor="#333333"
+                        android:layout_marginBottom="12dp"/>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:background="#FFFFFF"
+                        android:padding="8dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Col 1\nRoll No"
+                            android:gravity="center"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            android:background="#EEEEEE"
+                            android:padding="4dp"/>
+                        <View android:layout_width="1dp" android:layout_height="match_parent" android:background="#BDBDBD" android:layout_marginHorizontal="4dp"/>
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1.2"
+                            android:text="Col 2\nEnrollment No"
+                            android:gravity="center"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            android:background="#EEEEEE"
+                            android:padding="4dp"/>
+                        <View android:layout_width="1dp" android:layout_height="match_parent" android:background="#BDBDBD" android:layout_marginHorizontal="4dp"/>
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="2"
+                            android:text="Col 3\nStudent Name"
+                            android:gravity="center"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            android:background="#EEEEEE"
+                            android:padding="4dp"/>
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:hint="Select Academic Year"
+                app:boxStrokeColor="#1A237E"
+                app:startIconDrawable="@android:drawable/ic_menu_my_calendar"
+                app:startIconTint="#1A237E">
+
+                <Spinner
+                    android:id="@+id/spinnerYear"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:minHeight="55dp" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardFilePicker"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="0dp"
+                app:strokeColor="#1A237E"
+                app:strokeWidth="2dp"
+                android:backgroundTint="#F5F7FA">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:padding="32dp"
+                    android:background="?attr/selectableItemBackground">
+
+                    <ImageView
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:src="@android:drawable/ic_menu_add"
+                        app:tint="#1A237E"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Tap to Select File"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:textColor="#1A237E"
+                        android:layout_marginTop="8dp"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Supports .xlsx format only"
+                        android:textSize="12sp"
+                        android:textColor="#757575"
+                        android:layout_marginTop="4dp"/>
+
+                    <Button
+                        android:id="@+id/btnPickPdf"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@android:color/transparent"
+                        android:alpha="0"/>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <LinearLayout
+                android:id="@+id/layoutFilePreview"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="12dp"
+                android:background="#FFFFFF"
+                android:layout_marginBottom="24dp"
+                android:visibility="visible">
+
+                <ImageView
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:src="@android:drawable/ic_menu_save"
+                    app:tint="#2E7D32"/>
+
+                <TextView
+                    android:id="@+id/tvFileName"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="No file selected"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="#333"
+                    android:layout_marginStart="12dp"/>
+            </LinearLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnUpload"
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:text="UPLOAD TO DATABASE"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:backgroundTint="#2E7D32"
+                android:enabled="false"
+                app:cornerRadius="10dp"
+                app:icon="@android:drawable/stat_sys_upload"
+                app:iconGravity="textStart"/>
+
+        </LinearLayout>
+    </ScrollView>
 </LinearLayout>

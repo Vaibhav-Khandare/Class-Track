@@ -11,7 +11,8 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:background="#F5F7FA">
 
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
@@ -20,130 +21,284 @@
             android:background="#1A237E"
             android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
             app:titleTextColor="@android:color/white"
-            app:title="Class Track" />
+            app:title="Class Track"
+            app:elevation="0dp"/>
 
         <ScrollView
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="#F5F7FA">
+            android:fillViewport="true">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="24dp">
+                android:orientation="vertical">
 
-                <TextView
-                    android:id="@+id/tvWelcome"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Welcome, Teacher"
-                    android:textColor="#1A237E"
-                    android:textSize="28sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="24dp"
-                    android:text="Select a class to manage attendance"
-                    android:textColor="#757575" />
-
-                <com.google.android.material.card.MaterialCardView
+                <androidx.constraintlayout.widget.ConstraintLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="16dp"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="4dp">
-                    <LinearLayout
+                    android:background="#1A237E"
+                    android:paddingHorizontal="24dp"
+                    android:paddingBottom="40dp">
+
+                    <TextView
+                        android:id="@+id/tvWelcome"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Welcome, Teacher"
+                        android:textColor="#FFFFFF"
+                        android:textSize="26sp"
+                        android:textStyle="bold"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        android:layout_marginTop="16dp"/>
+
+                    <TextView
+                        android:id="@+id/tvDepartment"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Computer Department"
+                        android:textColor="#C5CAE9"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:layout_marginTop="4dp"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/tvWelcome"/>
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingHorizontal="20dp"
+                    android:layout_marginTop="-20dp">
+
+                    <com.google.android.material.card.MaterialCardView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="16dp">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="1st Year"
-                            android:textColor="#1A237E"
-                            android:textSize="20sp"
-                            android:textStyle="bold" />
+                        android:layout_marginBottom="16dp"
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="6dp"
+                        app:cardBackgroundColor="#FFFFFF">
+
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="10dp"
-                            android:orientation="horizontal">
-                            <Button android:id="@+id/btnMark1" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:layout_marginEnd="8dp" android:backgroundTint="#1A237E" android:text="Mark" />
-                            <Button android:id="@+id/btnView1" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="View" />
-                        </LinearLayout>
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
+                            android:orientation="vertical">
 
-                <com.google.android.material.card.MaterialCardView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="16dp"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="4dp">
-                    <LinearLayout
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:background="#E8EAF6"
+                                android:paddingVertical="12dp"
+                                android:paddingHorizontal="16dp">
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="1st Year"
+                                    android:textColor="#1A237E"
+                                    android:textSize="18sp"
+                                    android:textStyle="bold"/>
+                            </LinearLayout>
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical"
+                                android:padding="16dp">
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Manage attendance for First Year students."
+                                    android:textColor="#757575"
+                                    android:textSize="14sp"
+                                    android:layout_marginBottom="16dp"/>
+
+                                <LinearLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:orientation="horizontal">
+                                    <Button
+                                        android:id="@+id/btnMark1"
+                                        android:layout_width="0dp"
+                                        android:layout_weight="1"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginEnd="8dp"
+                                        android:backgroundTint="#1A237E"
+                                        android:text="Mark Attendance"
+                                        android:textAllCaps="false"
+                                        app:cornerRadius="8dp"/>
+                                    <Button
+                                        android:id="@+id/btnView1"
+                                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                                        android:layout_width="0dp"
+                                        android:layout_weight="1"
+                                        android:layout_height="wrap_content"
+                                        android:text="View Report"
+                                        android:textColor="#1A237E"
+                                        app:strokeColor="#1A237E"
+                                        android:textAllCaps="false"
+                                        app:cornerRadius="8dp"/>
+                                </LinearLayout>
+                            </LinearLayout>
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <com.google.android.material.card.MaterialCardView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="16dp">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="2nd Year"
-                            android:textColor="#1A237E"
-                            android:textSize="20sp"
-                            android:textStyle="bold" />
+                        android:layout_marginBottom="16dp"
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="6dp"
+                        app:cardBackgroundColor="#FFFFFF">
+
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="10dp"
-                            android:orientation="horizontal">
-                            <Button android:id="@+id/btnMark2" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:layout_marginEnd="8dp" android:backgroundTint="#1A237E" android:text="Mark" />
-                            <Button android:id="@+id/btnView2" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="View" />
-                        </LinearLayout>
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
+                            android:orientation="vertical">
 
-                <com.google.android.material.card.MaterialCardView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="32dp"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="4dp">
-                    <LinearLayout
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:background="#E8EAF6"
+                                android:paddingVertical="12dp"
+                                android:paddingHorizontal="16dp">
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="2nd Year"
+                                    android:textColor="#1A237E"
+                                    android:textSize="18sp"
+                                    android:textStyle="bold"/>
+                            </LinearLayout>
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical"
+                                android:padding="16dp">
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Manage attendance for Second Year students."
+                                    android:textColor="#757575"
+                                    android:textSize="14sp"
+                                    android:layout_marginBottom="16dp"/>
+
+                                <LinearLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:orientation="horizontal">
+                                    <Button
+                                        android:id="@+id/btnMark2"
+                                        android:layout_width="0dp"
+                                        android:layout_weight="1"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginEnd="8dp"
+                                        android:backgroundTint="#1A237E"
+                                        android:text="Mark Attendance"
+                                        android:textAllCaps="false"
+                                        app:cornerRadius="8dp"/>
+                                    <Button
+                                        android:id="@+id/btnView2"
+                                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                                        android:layout_width="0dp"
+                                        android:layout_weight="1"
+                                        android:layout_height="wrap_content"
+                                        android:text="View Report"
+                                        android:textColor="#1A237E"
+                                        app:strokeColor="#1A237E"
+                                        android:textAllCaps="false"
+                                        app:cornerRadius="8dp"/>
+                                </LinearLayout>
+                            </LinearLayout>
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <com.google.android.material.card.MaterialCardView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="16dp">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="3rd Year"
-                            android:textColor="#1A237E"
-                            android:textSize="20sp"
-                            android:textStyle="bold" />
+                        android:layout_marginBottom="32dp"
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="6dp"
+                        app:cardBackgroundColor="#FFFFFF">
+
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="10dp"
-                            android:orientation="horizontal">
-                            <Button android:id="@+id/btnMark3" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:layout_marginEnd="8dp" android:backgroundTint="#1A237E" android:text="Mark" />
-                            <Button android:id="@+id/btnView3" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="View" />
+                            android:orientation="vertical">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:background="#E8EAF6"
+                                android:paddingVertical="12dp"
+                                android:paddingHorizontal="16dp">
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="3rd Year"
+                                    android:textColor="#1A237E"
+                                    android:textSize="18sp"
+                                    android:textStyle="bold"/>
+                            </LinearLayout>
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical"
+                                android:padding="16dp">
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Manage attendance for Third Year students."
+                                    android:textColor="#757575"
+                                    android:textSize="14sp"
+                                    android:layout_marginBottom="16dp"/>
+
+                                <LinearLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:orientation="horizontal">
+                                    <Button
+                                        android:id="@+id/btnMark3"
+                                        android:layout_width="0dp"
+                                        android:layout_weight="1"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginEnd="8dp"
+                                        android:backgroundTint="#1A237E"
+                                        android:text="Mark Attendance"
+                                        android:textAllCaps="false"
+                                        app:cornerRadius="8dp"/>
+                                    <Button
+                                        android:id="@+id/btnView3"
+                                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                                        android:layout_width="0dp"
+                                        android:layout_weight="1"
+                                        android:layout_height="wrap_content"
+                                        android:text="View Report"
+                                        android:textColor="#1A237E"
+                                        app:strokeColor="#1A237E"
+                                        android:textAllCaps="false"
+                                        app:cornerRadius="8dp"/>
+                                </LinearLayout>
+                            </LinearLayout>
                         </LinearLayout>
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
+                    </com.google.android.material.card.MaterialCardView>
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnLogout"
-                    android:layout_width="match_parent"
-                    android:layout_height="58dp"
-                    android:backgroundTint="#D32F2F"
-                    android:text="LOGOUT"
-                    app:cornerRadius="8dp" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnLogout"
+                        android:layout_width="match_parent"
+                        android:layout_height="58dp"
+                        android:backgroundTint="#D32F2F"
+                        android:text="LOGOUT"
+                        android:textStyle="bold"
+                        android:textSize="16sp"
+                        android:layout_marginBottom="32dp"
+                        app:cornerRadius="12dp" />
 
+                </LinearLayout>
             </LinearLayout>
         </ScrollView>
     </LinearLayout>

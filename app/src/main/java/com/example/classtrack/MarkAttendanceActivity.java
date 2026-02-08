@@ -2,18 +2,22 @@ package com.example.classtrack;
 
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
-import android.content.SharedPreferences; // 🔥 Added import
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -33,7 +37,8 @@ import java.util.Map;
 
 public class MarkAttendanceActivity extends AppCompatActivity {
 
-    TextView tvTitle;
+    // UI Variables
+    TextView tvTitle, tvSummary;
     EditText etFromTime, etToTime, etDate;
     ToggleButton toggleAttendance;
     RecyclerView recyclerStudents;
@@ -42,9 +47,14 @@ public class MarkAttendanceActivity extends AppCompatActivity {
     Button btnClear, btnSave;
     Spinner spinnerSubject;
 
+    // Collapsible Logic Variables
+    LinearLayout layoutCardHeader, layoutFormBody;
+    ImageView btnExpandCollapse;
+    boolean isFormExpanded = true;
+
     private FirebaseFirestore db;
-    private String currentYearBatch; // e.g., "1st Year"
-    private String selectedBranch;   // e.g., "Computer", "Mechanical A"
+    private String currentYearBatch;
+    private String selectedBranch;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,16 +63,24 @@ public class MarkAttendanceActivity extends AppCompatActivity {
 
         db = FirebaseFirestore.getInstance();
 
-        // 1. Get Selected Branch from SharedPreferences
-        SharedPreferences prefs = getSharedPreferences("TeacherPrefs", MODE_PRIVATE);
-        selectedBranch = prefs.getString("selectedBranch", "Computer"); // Default to Computer
+        // 1. Setup Toolbar
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setDisplayShowTitleEnabled(false);
+        }
+        toolbar.setNavigationOnClickListener(v -> finish());
 
-        // 2. Get Year from Intent
+        // 2. Get Data
+        SharedPreferences prefs = getSharedPreferences("TeacherPrefs", MODE_PRIVATE);
+        selectedBranch = prefs.getString("selectedBranch", "Computer");
         currentYearBatch = getIntent().getStringExtra("YEAR");
         if (currentYearBatch == null) currentYearBatch = "1st Year";
 
-        // Initialize UI
+        // 3. Initialize Views
         tvTitle = findViewById(R.id.tvTitle);
+        tvSummary = findViewById(R.id.tvSummary);
         spinnerSubject = findViewById(R.id.spinnerSubject);
         etFromTime = findViewById(R.id.etFromTime);
         etToTime = findViewById(R.id.etToTime);
@@ -72,9 +90,14 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         btnClear = findViewById(R.id.btnClear);
         btnSave = findViewById(R.id.btnSave);
 
+        // Collapsible Views
+        layoutCardHeader = findViewById(R.id.layoutCardHeader);
+        layoutFormBody = findViewById(R.id.layoutFormBody);
+        btnExpandCollapse = findViewById(R.id.btnExpandCollapse);
+
         studentList = new ArrayList<>();
 
-        // Update Title dynamically
+        // Set Title
         tvTitle.setText(selectedBranch + " (" + currentYearBatch + ")");
 
         // Setup Spinner
@@ -85,13 +108,14 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         recyclerStudents.setLayoutManager(new LinearLayoutManager(this));
         recyclerStudents.setAdapter(adapter);
 
-        // 3. Fetch Data based on Branch + Year
+        // Fetch Data
         fetchStudentsFromFirestore();
 
-        // Listeners
+        // 4. Listeners
         etFromTime.setOnClickListener(v -> showTimePicker(etFromTime));
         etToTime.setOnClickListener(v -> showTimePicker(etToTime));
         etDate.setOnClickListener(v -> showDatePicker());
+
         toggleAttendance.setOnCheckedChangeListener((buttonView, isChecked) -> adapter.setAll(isChecked));
         btnClear.setOnClickListener(v -> adapter.setAll(false));
 
@@ -100,12 +124,61 @@ public class MarkAttendanceActivity extends AppCompatActivity {
                 saveAttendanceToFirestore();
             }
         });
+
+        // Toggle Form Listener
+        layoutCardHeader.setOnClickListener(v -> toggleForm());
+    }
+
+    // ---------------------------------------------------------
+    //  🔥 UPDATED COLLAPSIBLE FORM LOGIC
+    // ---------------------------------------------------------
+    private void toggleForm() {
+        if (isFormExpanded) {
+            // --- COLLAPSE ACTION ---
+            layoutFormBody.setVisibility(View.GONE);
+            btnExpandCollapse.setImageResource(android.R.drawable.arrow_down_float);
+
+            // 1. Get Subject
+            String subject = "";
+            if (spinnerSubject.getSelectedItem() != null) {
+                subject = spinnerSubject.getSelectedItem().toString();
+            }
+
+            // 2. Get Date & Time
+            String date = etDate.getText().toString();
+            String time = "";
+            if (!etFromTime.getText().toString().isEmpty() && !etToTime.getText().toString().isEmpty()) {
+                time = "(" + etFromTime.getText().toString() + " - " + etToTime.getText().toString() + ")";
+            }
+
+            // 3. Build Summary String: "OSY • 08/02/2026 (12:00 - 01:00)"
+            StringBuilder summaryBuilder = new StringBuilder();
+            summaryBuilder.append(subject);
+
+            if (!date.isEmpty()) {
+                summaryBuilder.append(" • ").append(date);
+            }
+            if (!time.isEmpty()) {
+                summaryBuilder.append(" ").append(time);
+            } else if (date.isEmpty()) {
+                summaryBuilder.append(" • Tap to add details");
+            }
+            summaryBuilder.append(" • Tap to Edit");
+            tvSummary.setText(summaryBuilder.toString());
+            tvSummary.setVisibility(View.VISIBLE);
+
+            isFormExpanded = false;
+        } else {
+            // --- EXPAND ACTION ---
+            layoutFormBody.setVisibility(View.VISIBLE);
+            btnExpandCollapse.setImageResource(android.R.drawable.arrow_up_float);
+            tvSummary.setVisibility(View.GONE); // Hide summary when expanded
+            isFormExpanded = true;
+        }
     }
 
     private void setupSpinner() {
         int subjectArrayResId;
-        // You might want to make subject arrays branch-specific later
-        // For now, using Year logic
         if (currentYearBatch.equals("2nd Year")) {
             subjectArrayResId = R.array.subjects_2nd_year;
         } else if (currentYearBatch.equals("3rd Year")) {
@@ -120,22 +193,13 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         spinnerSubject.setAdapter(subjectAdapter);
     }
 
-    // ---------------------------------------------------------
-    //  🔥 DYNAMIC FETCH LOGIC
-    // ---------------------------------------------------------
     private void fetchStudentsFromFirestore() {
-        // 1. Generate the Collection ID (e.g., "ma_1st", "co_2nd")
         String batchDocName = getCollectionCode();
-
-        if (batchDocName == null) {
-            Toast.makeText(this, "Error generating batch code", Toast.LENGTH_SHORT).show();
-            return;
-        }
+        if (batchDocName == null) return;
 
         studentList.clear();
         adapter.notifyDataSetChanged();
 
-        // 2. Fetch from: Student -> [batchDocName] -> student_list
         db.collection("Student")
                 .document(batchDocName)
                 .collection("student_list")
@@ -152,23 +216,17 @@ public class MarkAttendanceActivity extends AppCompatActivity {
                                     roll = Integer.parseInt(doc.getId());
                                 } catch (NumberFormatException ex) { }
                             }
-
                             String name = doc.getString("name");
                             studentList.add(new Student(roll, name, true));
                         }
                         adapter.notifyDataSetChanged();
                     } else {
-                        // 🔥 SPECIFIC REQUIREMENT: Toast if list is empty (e.g., Mechanical)
-                        Toast.makeText(this, "No roll list found for " + selectedBranch + " " + currentYearBatch, Toast.LENGTH_LONG).show();
+                        Toast.makeText(this, "No roll list found for " + selectedBranch, Toast.LENGTH_LONG).show();
                     }
                 })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Error loading data: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                    Log.e("Firestore", "Error fetching students", e);
-                });
+                .addOnFailureListener(e -> Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
 
-    // Helper to map Branch + Year to Firestore Doc ID
     private String getCollectionCode() {
         String yearSuffix = "";
         if (currentYearBatch.equals("1st Year")) yearSuffix = "_1st";
@@ -176,9 +234,7 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         else if (currentYearBatch.equals("3rd Year")) yearSuffix = "_3rd";
         else return null;
 
-        String branchPrefix = "gen"; // Default
-
-        // Must match names in BranchSelectionActivity
+        String branchPrefix = "gen";
         switch (selectedBranch) {
             case "Computer": branchPrefix = "co"; break;
             case "Electrical": branchPrefix = "el"; break;
@@ -187,17 +243,20 @@ public class MarkAttendanceActivity extends AppCompatActivity {
             case "Mechanical A": branchPrefix = "ma"; break;
             case "Mechanical B": branchPrefix = "mb"; break;
         }
-
-        return branchPrefix + yearSuffix; // e.g., "ma_1st"
+        return branchPrefix + yearSuffix;
     }
 
-    // ---------------------------------------------------------
-    //  SAVE LOGIC (Unchanged)
-    // ---------------------------------------------------------
     private boolean validateInputs() {
-        if (etDate.getText().toString().isEmpty()) return false;
-        if (etFromTime.getText().toString().isEmpty() || etToTime.getText().toString().isEmpty()) return false;
-        if (spinnerSubject.getSelectedItem() == null) return false;
+        if (etDate.getText().toString().isEmpty()) {
+            Toast.makeText(this, "Select Date", Toast.LENGTH_SHORT).show();
+            if (!isFormExpanded) toggleForm();
+            return false;
+        }
+        if (etFromTime.getText().toString().isEmpty()) {
+            Toast.makeText(this, "Select Start Time", Toast.LENGTH_SHORT).show();
+            if (!isFormExpanded) toggleForm();
+            return false;
+        }
         return true;
     }
 
@@ -223,7 +282,7 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         Map<String, Object> sessionMap = new HashMap<>();
         sessionMap.put("subject", spinnerSubject.getSelectedItem().toString());
         sessionMap.put("batch", currentYearBatch);
-        sessionMap.put("branch", selectedBranch); // 🔥 Save Branch too
+        sessionMap.put("branch", selectedBranch);
         sessionMap.put("dateStr", etDate.getText().toString());
         sessionMap.put("timestamp", dateForQuery);
         sessionMap.put("startTime", etFromTime.getText().toString());
@@ -235,13 +294,13 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         db.collection("attendance_sessions")
                 .add(sessionMap)
                 .addOnSuccessListener(documentReference -> {
-                    Toast.makeText(this, "Attendance Saved!", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Saved!", Toast.LENGTH_SHORT).show();
                     finish();
                 })
                 .addOnFailureListener(e -> {
                     Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                     btnSave.setEnabled(true);
-                    btnSave.setText("SAVE");
+                    btnSave.setText("SAVE ATTENDANCE");
                 });
     }
 
@@ -259,6 +318,13 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         TimePickerDialog dialog = new TimePickerDialog(this, (view, hourOfDay, minute) -> {
             String time = String.format(Locale.getDefault(), "%02d:%02d", hourOfDay, minute);
             editText.setText(time);
+
+            // Auto-Collapse Logic
+            if (editText.getId() == R.id.etToTime && !etFromTime.getText().toString().isEmpty()) {
+                if (isFormExpanded) {
+                    toggleForm();
+                }
+            }
         }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), false);
         dialog.show();
     }

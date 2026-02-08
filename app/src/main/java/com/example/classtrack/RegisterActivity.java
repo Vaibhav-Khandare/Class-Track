@@ -6,7 +6,9 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Base64;
-import android.widget.CheckBox; // Import Checkbox
+import android.widget.ArrayAdapter; // Import
+import android.widget.AutoCompleteTextView; // Import
+import android.widget.CheckBox;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
@@ -26,10 +28,14 @@ import java.util.Map;
 public class RegisterActivity extends AppCompatActivity {
 
     private TextInputEditText etUsername, etMobile, etEmail, etIdProof, etPassword, etConfirmPassword;
-    private TextInputLayout tilUsername, tilMobile, tilEmail, tilIdProof, tilPassword, tilConfirmPassword;
+    private TextInputLayout tilUsername, tilMobile, tilEmail, tilIdProof, tilPassword, tilConfirmPassword, tilBranch;
+
+    // 🔥 New Variable for Branch Dropdown
+    private AutoCompleteTextView acBranch;
+
     private MaterialButton btnRegister, btnBrowse;
     private TextView tvLoginLink;
-    private CheckBox cbHod; // New Checkbox
+    private CheckBox cbHod;
 
     private FirebaseAuth mAuth;
     private FirebaseFirestore db;
@@ -44,6 +50,7 @@ public class RegisterActivity extends AppCompatActivity {
         db = FirebaseFirestore.getInstance();
 
         initViews();
+        setupBranchDropdown(); // 🔥 Call the setup function
 
         ActivityResultLauncher<String> picker = registerForActivityResult(
                 new ActivityResultContracts.GetContent(), uri -> {
@@ -65,6 +72,13 @@ public class RegisterActivity extends AppCompatActivity {
                 registerUser();
             }
         });
+    }
+
+    // 🔥 Logic to populate the Dropdown
+    private void setupBranchDropdown() {
+        String[] branches = {"Computer", "Electrical", "Civil", "Electronics", "Mechanical A", "Mechanical B"};
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, branches);
+        acBranch.setAdapter(adapter);
     }
 
     private void registerUser() {
@@ -98,12 +112,14 @@ public class RegisterActivity extends AppCompatActivity {
         Map<String, Object> map = new HashMap<>();
         map.put("username", etUsername.getText().toString().trim());
         map.put("email", etEmail.getText().toString().trim());
+
+        // 🔥 SAVE SELECTED BRANCH
+        map.put("branch", acBranch.getText().toString().trim());
+
         map.put("mobile", etMobile.getText().toString().trim());
         map.put("password", etPassword.getText().toString().trim());
         map.put("name", etUsername.getText().toString().trim());
         map.put("idProof", base64Image);
-
-        // 🔥 SAVE HOD STATUS HERE
         map.put("isHod", cbHod.isChecked());
 
         // Always save to "teachers" collection
@@ -141,29 +157,40 @@ public class RegisterActivity extends AppCompatActivity {
         etUsername = findViewById(R.id.etUsername);
         etMobile = findViewById(R.id.etMobile);
         etEmail = findViewById(R.id.etEmail);
+
+        // 🔥 Init Branch Views
+        tilBranch = findViewById(R.id.tilBranch);
+        acBranch = findViewById(R.id.acBranch);
+
         etIdProof = findViewById(R.id.etIdProof);
         etPassword = findViewById(R.id.etPassword);
         etConfirmPassword = findViewById(R.id.etConfirmPassword);
+
         tilUsername = findViewById(R.id.tilUsername);
         tilMobile = findViewById(R.id.tilMobile);
         tilEmail = findViewById(R.id.tilEmail);
         tilPassword = findViewById(R.id.tilPassword);
         tilConfirmPassword = findViewById(R.id.tilConfirmPassword);
+
         btnBrowse = findViewById(R.id.btnBrowse);
         btnRegister = findViewById(R.id.btnRegister);
         tvLoginLink = findViewById(R.id.tvLoginLink);
-
-        // 🔥 Initialize Checkbox
         cbHod = findViewById(R.id.cbHod);
     }
 
     private boolean validateForm() {
         boolean valid = true;
+
         if (etUsername.getText().toString().isEmpty()) { tilUsername.setError("Username required"); valid = false; } else { tilUsername.setError(null); }
         if (etMobile.getText().toString().length() < 10) { tilMobile.setError("Enter 10 digit mobile"); valid = false; } else { tilMobile.setError(null); }
         if (etEmail.getText().toString().isEmpty()) { tilEmail.setError("Email required"); valid = false; } else { tilEmail.setError(null); }
+
+        // 🔥 Validate Branch Selection
+        if (acBranch.getText().toString().isEmpty()) { tilBranch.setError("Select Branch"); valid = false; } else { tilBranch.setError(null); }
+
         if (etPassword.getText().toString().isEmpty()) { tilPassword.setError("Password required"); valid = false; } else { tilPassword.setError(null); }
         if (!etPassword.getText().toString().equals(etConfirmPassword.getText().toString())) { tilConfirmPassword.setError("Passwords do not match"); valid = false; } else { tilConfirmPassword.setError(null); }
+
         return valid;
     }
 }

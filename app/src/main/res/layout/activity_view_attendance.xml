@@ -1,144 +1,242 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:orientation="vertical"
-    android:background="#F5F7FA"
-    android:padding="16dp">
+    android:background="#F5F7FA">
 
-    <TextView
-        android:id="@+id/tvScreenTitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Attendance Report"
-        android:textSize="22sp"
-        android:textStyle="bold"
-        android:textColor="#1A237E"
-        android:layout_marginBottom="16dp"/>
+    <View
+        android:id="@+id/viewHeader"
+        android:layout_width="match_parent"
+        android:layout_height="140dp"
+        android:background="#1A237E"
+        app:layout_constraintTop_toTopOf="parent" />
 
-    <androidx.cardview.widget.CardView
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@android:color/transparent"
+        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
+        app:title="Attendance Report"
+        app:titleTextColor="@android:color/white"
+        app:navigationIcon="@android:drawable/ic_menu_revert"
+        app:layout_constraintTop_toTopOf="parent"
+        app:elevation="0dp"/>
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardFilters"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        app:cardElevation="4dp"
-        app:cardCornerRadius="8dp"
-        android:backgroundTint="#FFFFFF">
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="8dp"
+        android:animateLayoutChanges="true"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="6dp"
+        app:cardBackgroundColor="#FFFFFF"
+        app:layout_constraintTop_toBottomOf="@id/toolbar">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:paddingHorizontal="16dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="16dp">
 
             <LinearLayout
+                android:id="@+id/layoutHeader"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_marginBottom="10dp">
+                android:gravity="center_vertical"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:paddingVertical="4dp">
 
-                <EditText
-                    android:id="@+id/etDateFrom"
+                <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:hint="Start Date"
-                    android:focusable="false"
-                    android:drawableEnd="@android:drawable/ic_menu_my_calendar"
-                    android:textSize="14sp"/>
+                    android:orientation="vertical">
 
-                <Space
-                    android:layout_width="16dp"
-                    android:layout_height="wrap_content"/>
+                    <TextView
+                        android:id="@+id/tvFilterTitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Filter Options"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="#1A237E"/>
 
-                <EditText
-                    android:id="@+id/etDateTo"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:hint="End Date"
-                    android:focusable="false"
-                    android:drawableEnd="@android:drawable/ic_menu_my_calendar"
-                    android:textSize="14sp"/>
+                    <TextView
+                        android:id="@+id/tvFilterSummary"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Select dates to generate report"
+                        android:textSize="12sp"
+                        android:textColor="#757575"
+                        android:visibility="gone"
+                        tools:visibility="visible"
+                        android:layout_marginTop="2dp"/>
+                </LinearLayout>
+
+                <ImageView
+                    android:id="@+id/btnExpandCollapse"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@android:drawable/arrow_up_float"
+                    app:tint="#757575"/>
             </LinearLayout>
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Select Subject:"
-                android:textStyle="bold"
-                android:layout_marginBottom="4dp"/>
-
-            <Spinner
-                android:id="@+id/spinnerSubjectReport"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:background="@android:drawable/btn_dropdown"/>
-
             <LinearLayout
+                android:id="@+id/layoutInputs"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:layout_marginTop="16dp">
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnShowReport"
-                    android:layout_width="match_parent"
-                    android:layout_height="55dp"
-                    android:text="SHOW REPORT"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:backgroundTint="#1A237E"
-                    app:cornerRadius="8dp"
-                    android:layout_marginBottom="8dp"/>
+                android:visibility="visible"
+                android:layout_marginTop="12dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal">
+                    android:orientation="horizontal"
+                    android:baselineAligned="false"
+                    android:layout_marginBottom="12dp">
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnPrintPdf"
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="0dp"
-                        android:layout_height="50dp"
+                        android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Export PDF"
-                        android:textColor="#1A237E"
-                        android:textSize="13sp"
-                        android:lines="1"
-                        android:layout_marginEnd="6dp"
-                        app:strokeColor="#1A237E"
-                        app:strokeWidth="1dp"
-                        app:cornerRadius="8dp"
-                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+                        android:hint="From Date"
+                        app:boxStrokeColor="#1A237E"
+                        app:startIconDrawable="@android:drawable/ic_menu_my_calendar"
+                        app:startIconTint="#1A237E"
+                        android:layout_marginEnd="8dp">
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnPrintExcel"
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etDateFrom"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:focusable="false"
+                            android:clickable="true"
+                            android:inputType="none"
+                            android:textSize="14sp"/>
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="0dp"
-                        android:layout_height="50dp"
+                        android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Export Excel"
-                        android:textColor="#388E3C"
-                        android:textSize="13sp"
-                        android:lines="1"
-                        android:layout_marginStart="6dp"
-                        app:strokeColor="#388E3C"
-                        app:strokeWidth="1dp"
-                        app:cornerRadius="8dp"
-                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+                        android:hint="To Date"
+                        app:boxStrokeColor="#1A237E"
+                        app:startIconDrawable="@android:drawable/ic_menu_my_calendar"
+                        app:startIconTint="#1A237E"
+                        android:layout_marginStart="8dp">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etDateTo"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:focusable="false"
+                            android:clickable="true"
+                            android:inputType="none"
+                            android:textSize="14sp"/>
+                    </com.google.android.material.textfield.TextInputLayout>
                 </LinearLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Select Subject"
+                    app:boxStrokeColor="#1A237E"
+                    app:startIconDrawable="@android:drawable/ic_menu_sort_by_size"
+                    app:startIconTint="#1A237E"
+                    android:layout_marginBottom="16dp">
+
+                    <Spinner
+                        android:id="@+id/spinnerSubjectReport"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:minHeight="50dp" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnShowReport"
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:text="GENERATE REPORT"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.05"
+                    android:backgroundTint="#1A237E"
+                    app:cornerRadius="8dp"
+                    app:elevation="2dp"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/layoutExport"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:visibility="gone"
+                android:layout_marginTop="12dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPrintPdf"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="PDF"
+                    android:textColor="#D32F2F"
+                    app:icon="@android:drawable/ic_menu_save"
+                    app:iconTint="#D32F2F"
+                    app:strokeColor="#D32F2F"
+                    app:cornerRadius="8dp"
+                    android:layout_marginEnd="6dp"/>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPrintExcel"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Excel"
+                    android:textColor="#388E3C"
+                    app:icon="@android:drawable/stat_sys_upload"
+                    app:iconTint="#388E3C"
+                    app:strokeColor="#388E3C"
+                    app:cornerRadius="8dp"
+                    android:layout_marginStart="6dp"/>
             </LinearLayout>
 
         </LinearLayout>
-    </androidx.cardview.widget.CardView>
+    </com.google.android.material.card.MaterialCardView>
 
     <LinearLayout
+        android:id="@+id/layoutStats"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="10dp"
         android:background="#E8EAF6"
-        android:layout_marginBottom="8dp">
+        android:paddingVertical="12dp"
+        android:paddingHorizontal="20dp"
+        android:gravity="center_vertical"
+        app:layout_constraintTop_toBottomOf="@id/cardFilters"
+        android:layout_marginTop="8dp">
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@android:drawable/ic_menu_info_details"
+            app:tint="#1A237E"/>
 
         <TextView
             android:id="@+id/tvTotalLectures"
@@ -146,29 +244,38 @@
             android:layout_height="wrap_content"
             android:text="Total Lectures: 0"
             android:textStyle="bold"
-            android:textColor="#333333"/>
+            android:textColor="#1A237E"
+            android:textSize="14sp"
+            android:layout_marginStart="8dp"/>
     </LinearLayout>
 
     <LinearLayout
+        android:id="@+id/layoutListHeader"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:paddingVertical="8dp"
-        android:paddingHorizontal="4dp">
+        android:background="#FAFAFA"
+        android:paddingVertical="10dp"
+        android:paddingHorizontal="16dp"
+        app:layout_constraintTop_toBottomOf="@id/layoutStats">
 
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="0.8"
             android:text="Roll"
-            android:textStyle="bold"/>
+            android:textSize="12sp"
+            android:textColor="#757575"
+            android:textStyle="bold" />
 
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="2"
-            android:text="Name"
-            android:textStyle="bold"/>
+            android:text="Student Name"
+            android:textSize="12sp"
+            android:textColor="#757575"
+            android:textStyle="bold" />
 
         <TextView
             android:layout_width="0dp"
@@ -176,26 +283,35 @@
             android:layout_weight="1"
             android:text="Attended"
             android:gravity="center"
-            android:textStyle="bold"/>
+            android:textSize="12sp"
+            android:textColor="#757575"
+            android:textStyle="bold" />
 
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
+            android:layout_weight="0.8"
             android:text="%"
             android:gravity="center"
-            android:textStyle="bold"/>
+            android:textSize="12sp"
+            android:textColor="#757575"
+            android:textStyle="bold" />
     </LinearLayout>
 
     <View
+        android:id="@+id/dividerHeader"
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="#CCCCCC"/>
+        android:background="#E0E0E0"
+        app:layout_constraintTop_toBottomOf="@id/layoutListHeader"/>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvReportList"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"/>
+        android:clipToPadding="false"
+        android:paddingBottom="16dp"
+        app:layout_constraintTop_toBottomOf="@id/dividerHeader"
+        app:layout_constraintBottom_toBottomOf="parent"/>
 
-</LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

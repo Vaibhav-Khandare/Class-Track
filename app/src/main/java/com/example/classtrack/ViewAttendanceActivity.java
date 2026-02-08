@@ -2,22 +2,30 @@ package com.example.classtrack;
 
 import android.Manifest;
 import android.app.DatePickerDialog;
+import android.content.ContentValues;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.pdf.PdfDocument;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.provider.MediaStore;
+import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -27,10 +35,7 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.OutputStream;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -41,27 +46,28 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import android.content.ContentValues;
-import android.net.Uri;
-import android.provider.MediaStore;
-import java.io.OutputStream;
-
 
 public class ViewAttendanceActivity extends AppCompatActivity {
 
-    private TextView tvScreenTitle, tvTotalLectures;
+    // UI Variables
+    private TextView tvTotalLectures, tvFilterSummary;
     private EditText etDateFrom, etDateTo;
     private Spinner spinnerSubject;
     private Button btnShow, btnPrintPdf, btnPrintExcel;
     private RecyclerView rvReportList;
+
+    // Collapsible Logic Views
+    private LinearLayout layoutHeader, layoutInputs, layoutExport;
+    private ImageView btnExpandCollapse;
+    private boolean isFiltersExpanded = true;
+
     private String selectedYear;
+    private String selectedBranch;
     private int totalLecturesCount = 0;
 
     private FirebaseFirestore db;
     private ReportAdapter adapter;
     private List<StudentReport> reportList;
-
-    // Store all unique dates for columns
     private List<String> allSessionDates = new ArrayList<>();
 
     @Override
@@ -71,10 +77,23 @@ public class ViewAttendanceActivity extends AppCompatActivity {
 
         db = FirebaseFirestore.getInstance();
 
+        // 1. Setup Toolbar
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        if(getSupportActionBar() != null){
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setTitle("Attendance Report");
+        }
+        toolbar.setNavigationOnClickListener(v -> finish());
+
+        // 2. Get Data
         selectedYear = getIntent().getStringExtra("YEAR");
         if (selectedYear == null) selectedYear = "1st Year";
 
-        tvScreenTitle = findViewById(R.id.tvScreenTitle);
+        SharedPreferences prefs = getSharedPreferences("TeacherPrefs", MODE_PRIVATE);
+        selectedBranch = prefs.getString("selectedBranch", "Computer");
+
+        // 3. Initialize Views
         tvTotalLectures = findViewById(R.id.tvTotalLectures);
         etDateFrom = findViewById(R.id.etDateFrom);
         etDateTo = findViewById(R.id.etDateTo);
@@ -84,14 +103,25 @@ public class ViewAttendanceActivity extends AppCompatActivity {
         btnPrintPdf = findViewById(R.id.btnPrintPdf);
         btnPrintExcel = findViewById(R.id.btnPrintExcel);
 
-        tvScreenTitle.setText(selectedYear + " - Report");
+        // Collapsible Views
+        layoutHeader = findViewById(R.id.layoutHeader);
+        layoutInputs = findViewById(R.id.layoutInputs);
+        layoutExport = findViewById(R.id.layoutExport);
+        btnExpandCollapse = findViewById(R.id.btnExpandCollapse);
+        tvFilterSummary = findViewById(R.id.tvFilterSummary);
+
+        // 4. Setup
         setupDatePickers();
         setupSpinner();
 
         rvReportList.setLayoutManager(new LinearLayoutManager(this));
         reportList = new ArrayList<>();
 
+        // 5. Listeners
         btnShow.setOnClickListener(v -> loadReportData());
+
+        // Manual Toggle Listener
+        layoutHeader.setOnClickListener(v -> toggleFilters());
 
         btnPrintPdf.setOnClickListener(v -> {
             if (reportList.isEmpty()) {
@@ -102,21 +132,52 @@ public class ViewAttendanceActivity extends AppCompatActivity {
         });
 
         btnPrintExcel.setOnClickListener(v -> {
-
             if (reportList == null || reportList.isEmpty()) {
                 Toast.makeText(this, "Report list empty", Toast.LENGTH_LONG).show();
                 return;
             }
-
             exportToExcel();
         });
+    }
 
+    // ----------------------------------------------------
+    // 🔥 UX ENHANCEMENT: COLLAPSIBLE FILTER
+    // ----------------------------------------------------
+    private void toggleFilters() {
+        if (isFiltersExpanded) {
+            // Collapse
+            layoutInputs.setVisibility(View.GONE);
+            btnExpandCollapse.setImageResource(android.R.drawable.arrow_down_float);
+            tvFilterSummary.setVisibility(View.VISIBLE);
 
+            // Build Summary
+            String subject = (spinnerSubject.getSelectedItem() != null) ? spinnerSubject.getSelectedItem().toString() : "";
+            String d1 = etDateFrom.getText().toString();
+            String d2 = etDateTo.getText().toString();
+
+            if (!d1.isEmpty() && !d2.isEmpty()) {
+                tvFilterSummary.setText(subject + " • " + d1 + " to " + d2);
+            } else {
+                tvFilterSummary.setText("Expand to edit filters");
+            }
+
+            isFiltersExpanded = false;
+        } else {
+            // Expand
+            layoutInputs.setVisibility(View.VISIBLE);
+            btnExpandCollapse.setImageResource(android.R.drawable.arrow_up_float);
+            tvFilterSummary.setVisibility(View.GONE);
+
+            // Note: We don't hide layoutExport here, we keep it visible if data exists
+            isFiltersExpanded = true;
+        }
     }
 
     private void setupDatePickers() {
         etDateFrom.setOnClickListener(v -> showDatePicker(etDateFrom));
         etDateTo.setOnClickListener(v -> showDatePicker(etDateTo));
+        etDateFrom.setOnFocusChangeListener((v, hasFocus) -> { if(hasFocus) showDatePicker(etDateFrom); });
+        etDateTo.setOnFocusChangeListener((v, hasFocus) -> { if(hasFocus) showDatePicker(etDateTo); });
     }
 
     private void showDatePicker(EditText targetField) {
@@ -146,6 +207,8 @@ public class ViewAttendanceActivity extends AppCompatActivity {
     private void loadReportData() {
         String fromDateStr = etDateFrom.getText().toString();
         String toDateStr = etDateTo.getText().toString();
+
+        if (spinnerSubject.getSelectedItem() == null) return;
         String subject = spinnerSubject.getSelectedItem().toString();
 
         if (fromDateStr.isEmpty() || toDateStr.isEmpty()) {
@@ -165,6 +228,7 @@ public class ViewAttendanceActivity extends AppCompatActivity {
         Date endDateInclusive = c.getTime();
 
         db.collection("attendance_sessions")
+//                .whereEqualTo("branch", selectedBranch)
                 .whereEqualTo("batch", selectedYear)
                 .whereEqualTo("subject", subject)
                 .whereGreaterThanOrEqualTo("timestamp", startDate)
@@ -172,20 +236,21 @@ public class ViewAttendanceActivity extends AppCompatActivity {
                 .orderBy("timestamp", Query.Direction.ASCENDING)
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
-                    // 🔥 CHECK IF DATA IS EMPTY OR NOT
                     if (querySnapshot.isEmpty()) {
                         reportList.clear();
                         totalLecturesCount = 0;
-                        if(adapter != null) adapter.notifyDataSetChanged(); // Clear UI if adapter exists
+                        if(adapter != null) adapter.notifyDataSetChanged();
                         tvTotalLectures.setText("Total Lectures: 0");
 
+                        layoutExport.setVisibility(View.GONE); // Hide exports if empty
+
                         btnShow.setEnabled(true);
-                        btnShow.setText("SHOW REPORT");
-                        Toast.makeText(this, "No records found for this date range", Toast.LENGTH_LONG).show();
+                        btnShow.setText("GENERATE REPORT");
+                        Toast.makeText(this, "No records found.", Toast.LENGTH_LONG).show();
                         return;
                     }
 
-                    // Process Data if found
+                    // Process Data
                     totalLecturesCount = querySnapshot.size();
                     tvTotalLectures.setText("Total Lectures: " + totalLecturesCount);
 
@@ -204,37 +269,25 @@ public class ViewAttendanceActivity extends AppCompatActivity {
                             for (Map<String, Object> studentMap : studentsInSession) {
                                 Long rollLong = (Long) studentMap.get("roll");
                                 int roll = (rollLong != null) ? rollLong.intValue() : 0;
-
                                 String enrollmentNo = (String) studentMap.get("enrollmentNo");
-
-
                                 String name = (String) studentMap.get("name");
                                 String status = (String) studentMap.get("status");
-
 
                                 String key = enrollmentNo + "_" + roll;
 
                                 if (!aggregationMap.containsKey(key)) {
-                                    aggregationMap.put(
-                                            key,
-                                            new StudentReport(enrollmentNo, roll, name, 0)
-                                    );
+                                    aggregationMap.put(key, new StudentReport(enrollmentNo, roll, name, 0));
                                 }
 
                                 StudentReport report = aggregationMap.get(key);
                                 if (report != null) {
-
                                     if (!report.hasDate(sessionDate)) {
-
                                         report.setStatusForDate(sessionDate, status);
-
                                         if ("P".equals(status)) {
                                             report.incrementPresent();
                                         }
                                     }
                                 }
-
-
                             }
                         }
                     }
@@ -248,23 +301,26 @@ public class ViewAttendanceActivity extends AppCompatActivity {
                     rvReportList.setAdapter(adapter);
 
                     btnShow.setEnabled(true);
-                    btnShow.setText("SHOW REPORT");
-
-                    // Success Message
+                    btnShow.setText("GENERATE REPORT");
                     Toast.makeText(this, "Report Loaded!", Toast.LENGTH_SHORT).show();
+
+                    // 🔥 UX Magic: Show Export buttons & Collapse Input Form
+                    layoutExport.setVisibility(View.VISIBLE);
+                    if (isFiltersExpanded) {
+                        toggleFilters();
+                    }
 
                 })
                 .addOnFailureListener(e -> {
                     btnShow.setEnabled(true);
-                    btnShow.setText("SHOW REPORT");
+                    btnShow.setText("GENERATE REPORT");
                     Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
                 });
     }
 
     // ----------------------------------------------------
-    // 📄 LANDSCAPE PDF EXPORT
+    // 📄 PDF & EXCEL EXPORT (Same as before)
     // ----------------------------------------------------
-
     private void exportToPdfLandscape() {
         PdfDocument pdfDocument = new PdfDocument();
         Paint paint = new Paint();
@@ -281,7 +337,6 @@ public class ViewAttendanceActivity extends AppCompatActivity {
         int totalDates = Math.max(1, allSessionDates.size());
 
         for (int i = 0; i < totalDates; i += MAX_DATES_PER_PAGE) {
-
             int endIndex = Math.min(i + MAX_DATES_PER_PAGE, allSessionDates.size());
             List<String> currentBatchDates = new ArrayList<>();
             if(!allSessionDates.isEmpty()) {
@@ -312,7 +367,6 @@ public class ViewAttendanceActivity extends AppCompatActivity {
                 }
 
                 canvas.drawText(String.valueOf(s.getRoll()), 50, y, paint);
-
                 String name = s.getName();
                 if(name.length() > 25) name = name.substring(0, 22) + "...";
                 canvas.drawText(name, 120, y, paint);
@@ -320,7 +374,6 @@ public class ViewAttendanceActivity extends AppCompatActivity {
                 int xDate = 450;
                 for (String date : currentBatchDates) {
                     String status = s.getStatusForDate(date);
-
                     if(status.equals("P")) paint.setColor(Color.parseColor("#2E7D32"));
                     else if(status.equals("A")) paint.setColor(Color.RED);
                     else paint.setColor(Color.BLACK);
@@ -344,11 +397,9 @@ public class ViewAttendanceActivity extends AppCompatActivity {
                 canvas.drawLine(40, y + 15, pageWidth - 40, y + 15, tableLinePaint);
                 y += 45;
             }
-
             pdfDocument.finishPage(myPage);
             pageNumber++;
         }
-
         savePdfFile(pdfDocument);
     }
 
@@ -356,7 +407,7 @@ public class ViewAttendanceActivity extends AppCompatActivity {
         titlePaint.setTextSize(36);
         titlePaint.setColor(Color.BLUE);
         titlePaint.setFakeBoldText(true);
-        canvas.drawText("Attendance Report - " + selectedYear, 50, 60, titlePaint);
+        canvas.drawText("Attendance Report - " + selectedBranch + " (" + selectedYear + ")", 50, 60, titlePaint);
 
         paint.setTextSize(24);
         paint.setColor(Color.BLACK);
@@ -383,7 +434,6 @@ public class ViewAttendanceActivity extends AppCompatActivity {
         if (isLastBatch) {
             int xStats = 450 + (dates.size() * 90) + 20;
             if(dates.isEmpty()) xStats = 450;
-
             canvas.drawText("Attd", xStats, yHeader, paint);
             canvas.drawText("Total", xStats + 100, yHeader, paint);
             canvas.drawText("%", xStats + 200, yHeader, paint);
@@ -392,64 +442,35 @@ public class ViewAttendanceActivity extends AppCompatActivity {
     }
 
     private void savePdfFile(PdfDocument pdfDocument) {
-
         try {
-            String fileName = spinnerSubject.getSelectedItem()
-                    .toString().replaceAll("\\s+", "_")
-                    + "_Attendance_Report.pdf";
-
+            String fileName = spinnerSubject.getSelectedItem().toString().replaceAll("\\s+", "_") + "_Report.pdf";
             ContentValues values = new ContentValues();
             values.put(MediaStore.MediaColumns.DISPLAY_NAME, fileName);
             values.put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf");
-            values.put(MediaStore.MediaColumns.RELATIVE_PATH,
-                    Environment.DIRECTORY_DOWNLOADS);
+            values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
 
-            Uri uri = getContentResolver().insert(
-                    MediaStore.Downloads.EXTERNAL_CONTENT_URI,
-                    values
-            );
-
+            Uri uri = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
             if (uri == null) {
-                Toast.makeText(this,
-                        "Failed to create PDF file",
-                        Toast.LENGTH_LONG).show();
+                Toast.makeText(this, "Failed to create PDF file", Toast.LENGTH_LONG).show();
                 return;
             }
-
             OutputStream os = getContentResolver().openOutputStream(uri);
             pdfDocument.writeTo(os);
             os.close();
             pdfDocument.close();
-
-            Toast.makeText(this,
-                    "PDF saved in Downloads",
-                    Toast.LENGTH_LONG).show();
-
+            Toast.makeText(this, "PDF saved in Downloads", Toast.LENGTH_LONG).show();
         } catch (Exception e) {
-            Toast.makeText(this,
-                    "PDF Error: " + e.getMessage(),
-                    Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "PDF Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
 
-
-    // ----------------------------------------------------
-    // 📊 EXCEL EXPORT
-    // ----------------------------------------------------
-
     private void exportToExcel() {
-
         StringBuilder data = new StringBuilder();
         data.append("Enrollment No,Roll No,Name");
-
-        for (String d : allSessionDates) {
-            data.append(",").append(d);
-        }
-
+        for (String d : allSessionDates) { data.append(",").append(d); }
         data.append(",Attended,Total Lectures,Percentage\n");
 
         for (StudentReport s : reportList) {
-
             data.append(s.getEnrollmentNo()).append(",");
             data.append(s.getRoll()).append(",");
             data.append("\"").append(s.getName()).append("\"");
@@ -457,88 +478,53 @@ public class ViewAttendanceActivity extends AppCompatActivity {
             for (String d : allSessionDates) {
                 data.append(",").append(s.getStatusForDate(d));
             }
-
-            int percent = (totalLecturesCount > 0)
-                    ? (s.getPresentCount() * 100) / totalLecturesCount
-                    : 0;
-
-            data.append(",")
-                    .append(s.getPresentCount()).append(",")
+            int percent = (totalLecturesCount > 0) ? (s.getPresentCount() * 100) / totalLecturesCount : 0;
+            data.append(",").append(s.getPresentCount()).append(",")
                     .append(totalLecturesCount).append(",")
                     .append(percent).append("%\n");
         }
 
         try {
-            String fileName = spinnerSubject.getSelectedItem()
-                    .toString().replaceAll("\\s+", "_")
-                    + "_Attendance_Register.csv";
-
+            String fileName = spinnerSubject.getSelectedItem().toString().replaceAll("\\s+", "_") + "_Register.csv";
             ContentValues values = new ContentValues();
             values.put(MediaStore.MediaColumns.DISPLAY_NAME, fileName);
             values.put(MediaStore.MediaColumns.MIME_TYPE, "text/csv");
-            values.put(MediaStore.MediaColumns.RELATIVE_PATH,
-                    Environment.DIRECTORY_DOWNLOADS);
+            values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
 
-            Uri uri = getContentResolver().insert(
-                    MediaStore.Downloads.EXTERNAL_CONTENT_URI,
-                    values
-            );
-
+            Uri uri = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
             if (uri == null) {
-                Toast.makeText(this,
-                        "Failed to create file",
-                        Toast.LENGTH_LONG).show();
+                Toast.makeText(this, "Failed to create file", Toast.LENGTH_LONG).show();
                 return;
             }
-
             OutputStream os = getContentResolver().openOutputStream(uri);
             os.write(data.toString().getBytes());
             os.close();
-
-            Toast.makeText(this,
-                    "Excel saved in Downloads",
-                    Toast.LENGTH_LONG).show();
-
+            Toast.makeText(this, "Excel saved in Downloads", Toast.LENGTH_LONG).show();
         } catch (Exception e) {
-            Toast.makeText(this,
-                    "Excel Error: " + e.getMessage(),
-                    Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Excel Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
-
-
-    // ---------------- HELPERS ----------------
 
     private void sortDates(List<String> dates) {
         Collections.sort(dates, (d1, d2) -> {
             try {
-                SimpleDateFormat sdf =
-                        new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+                SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
                 return sdf.parse(d1).compareTo(sdf.parse(d2));
-            } catch (ParseException e) {
-                return 0;
-            }
+            } catch (ParseException e) { return 0; }
         });
     }
 
     private boolean checkPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) return true;
-        if (ContextCompat.checkSelfPermission(this,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 100);
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 100);
             return false;
         }
         return true;
     }
 
     private Date parseDate(String s) {
-        try {
-            return new SimpleDateFormat("dd/MM/yyyy",
-                    Locale.getDefault()).parse(s);
-        } catch (Exception e) {
-            return new Date();
-        }
+        try { return new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).parse(s); }
+        catch (Exception e) { return new Date(); }
     }
 }
