@@ -3,6 +3,9 @@ package com.example.classtrack;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.content.SharedPreferences;
+import com.google.android.material.timepicker.MaterialTimePicker;
+import com.google.android.material.timepicker.TimeFormat;
+
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -314,27 +317,66 @@ public class MarkAttendanceActivity extends AppCompatActivity {
     }
 
     private void showTimePicker(EditText editText) {
-        Calendar calendar = Calendar.getInstance();
-        TimePickerDialog dialog = new TimePickerDialog(this, (view, hourOfDay, minute) -> {
-            String time = String.format(Locale.getDefault(), "%02d:%02d", hourOfDay, minute);
-            editText.setText(time);
 
-            // Auto-Collapse Logic
-            if (editText.getId() == R.id.etToTime && !etFromTime.getText().toString().isEmpty()) {
-                if (isFormExpanded) {
-                    toggleForm();
-                }
+        MaterialTimePicker picker = new MaterialTimePicker.Builder()
+                .setTimeFormat(TimeFormat.CLOCK_12H)   // AM / PM
+                .setInputMode(MaterialTimePicker.INPUT_MODE_KEYBOARD)
+                .setTitleText("Select Time")
+                .build();
+
+        picker.addOnPositiveButtonClickListener(v -> {
+
+            int hour = picker.getHour();
+            int minute = picker.getMinute();
+
+            Calendar cal = Calendar.getInstance();
+            cal.set(Calendar.HOUR_OF_DAY, hour);
+            cal.set(Calendar.MINUTE, minute);
+
+            SimpleDateFormat sdf =
+                    new SimpleDateFormat("hh:mm a", Locale.getDefault());
+
+            editText.setText(sdf.format(cal.getTime()));
+
+            // Auto collapse logic
+            if (editText.getId() == R.id.etToTime &&
+                    !etFromTime.getText().toString().isEmpty()) {
+                if (isFormExpanded) toggleForm();
             }
-        }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), false);
-        dialog.show();
+        });
+
+        picker.show(getSupportFragmentManager(), "TIME_PICKER");
     }
+
 
     private void showDatePicker() {
         Calendar calendar = Calendar.getInstance();
-        DatePickerDialog dialog = new DatePickerDialog(this, (view, year, month, day) -> {
-            String date = String.format(Locale.getDefault(), "%02d/%02d/%04d", day, month + 1, year);
-            etDate.setText(date);
-        }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH));
+
+        int year = calendar.get(Calendar.YEAR);
+        int month = calendar.get(Calendar.MONTH);
+        int day = calendar.get(Calendar.DAY_OF_MONTH);
+
+        DatePickerDialog dialog = new DatePickerDialog(
+                this,
+                (view, selectedYear, selectedMonth, selectedDay) -> {
+
+                    String date = String.format(
+                            Locale.getDefault(),
+                            "%02d/%02d/%04d",
+                            selectedDay,
+                            selectedMonth + 1,
+                            selectedYear
+                    );
+                    etDate.setText(date);
+                },
+                year,
+                month,
+                day
+        );
+        dialog.getDatePicker().setMinDate(calendar.getTimeInMillis());
+        dialog.getDatePicker().setMaxDate(calendar.getTimeInMillis());
+
         dialog.show();
     }
+
 }
