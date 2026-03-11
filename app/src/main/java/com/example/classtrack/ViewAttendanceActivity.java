@@ -46,6 +46,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class ViewAttendanceActivity extends AppCompatActivity {
 
@@ -69,6 +71,9 @@ public class ViewAttendanceActivity extends AppCompatActivity {
     private ReportAdapter adapter;
     private List<StudentReport> reportList;
     private List<String> allSessionDates = new ArrayList<>();
+
+    // Cache for enrollment numbers to avoid repeated Firestore calls
+    private Map<Integer, String> enrollmentCache = new HashMap<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -205,6 +210,7 @@ public class ViewAttendanceActivity extends AppCompatActivity {
     }
 
     private void loadReportData() {
+
         String fromDateStr = etDateFrom.getText().toString();
         String toDateStr = etDateTo.getText().toString();
 
@@ -255,7 +261,10 @@ public class ViewAttendanceActivity extends AppCompatActivity {
                     tvTotalLectures.setText("Total Lectures: " + totalLecturesCount);
 
                     allSessionDates.clear();
-                    Map<String, StudentReport> aggregationMap = new HashMap<>();
+
+                    // First, collect all unique roll numbers from attendance data
+                    Map<Integer, String> tempNameMap = new HashMap<>();
+                    Map<String, Map<String, String>> studentAttendanceMap = new HashMap<>();
 
                     for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
                         String sessionDate = doc.getString("dateStr");
@@ -269,46 +278,75 @@ public class ViewAttendanceActivity extends AppCompatActivity {
                             for (Map<String, Object> studentMap : studentsInSession) {
                                 Long rollLong = (Long) studentMap.get("roll");
                                 int roll = (rollLong != null) ? rollLong.intValue() : 0;
-                                String enrollmentNo = (String) studentMap.get("enrollmentNo");
                                 String name = (String) studentMap.get("name");
                                 String status = (String) studentMap.get("status");
 
-                                String key = enrollmentNo + "_" + roll;
-
-                                if (!aggregationMap.containsKey(key)) {
-                                    aggregationMap.put(key, new StudentReport(enrollmentNo, roll, name, 0));
+                                // Store name for this roll number
+                                if (!tempNameMap.containsKey(roll)) {
+                                    tempNameMap.put(roll, name);
                                 }
 
-                                StudentReport report = aggregationMap.get(key);
-                                if (report != null) {
-                                    if (!report.hasDate(sessionDate)) {
-                                        report.setStatusForDate(sessionDate, status);
-                                        if ("P".equals(status)) {
-                                            report.incrementPresent();
-                                        }
-                                    }
+                                // Create a unique key for this student's attendance record
+                                String studentKey = String.valueOf(roll);
+
+                                if (!studentAttendanceMap.containsKey(studentKey)) {
+                                    studentAttendanceMap.put(studentKey, new HashMap<>());
                                 }
+
+                                studentAttendanceMap.get(studentKey).put(sessionDate, status);
                             }
                         }
                     }
 
-                    sortDates(allSessionDates);
+                    // Now fetch enrollment numbers for all unique roll numbers
+                    fetchEnrollmentNumbersForRolls(new ArrayList<>(tempNameMap.keySet()), new OnEnrollmentFetchedListener() {
+                        @Override
+                        public void onEnrollmentFetched(Map<Integer, String> enrollmentMap) {
+                            // Build the report list with enrollment numbers
+                            reportList.clear();
 
-                    reportList = new ArrayList<>(aggregationMap.values());
-                    Collections.sort(reportList, (o1, o2) -> Integer.compare(o1.getRoll(), o2.getRoll()));
+                            for (Integer roll : tempNameMap.keySet()) {
+                                String enrollmentNo = enrollmentMap.get(roll);
+                                if (enrollmentNo == null) enrollmentNo = "";
 
-                    adapter = new ReportAdapter(reportList, totalLecturesCount);
-                    rvReportList.setAdapter(adapter);
+                                String name = tempNameMap.get(roll);
+                                Map<String, String> attendanceMap = studentAttendanceMap.get(String.valueOf(roll));
 
-                    btnShow.setEnabled(true);
-                    btnShow.setText("GENERATE REPORT");
-                    Toast.makeText(this, "Report Loaded!", Toast.LENGTH_SHORT).show();
+                                StudentReport report = new StudentReport(enrollmentNo, roll, name, 0);
 
-                    // 🔥 UX Magic: Show Export buttons & Collapse Input Form
-                    layoutExport.setVisibility(View.VISIBLE);
-                    if (isFiltersExpanded) {
-                        toggleFilters();
-                    }
+                                // Set attendance status for each date
+                                if (attendanceMap != null) {
+                                    for (String date : allSessionDates) {
+                                        String status = attendanceMap.get(date);
+                                        if (status != null) {
+                                            report.setStatusForDate(date, status);
+                                            if ("P".equals(status)) {
+                                                report.incrementPresent();
+                                            }
+                                        }
+                                    }
+                                }
+
+                                reportList.add(report);
+                            }
+
+                            sortDates(allSessionDates);
+                            Collections.sort(reportList, (o1, o2) -> Integer.compare(o1.getRoll(), o2.getRoll()));
+
+                            adapter = new ReportAdapter(reportList, totalLecturesCount);
+                            rvReportList.setAdapter(adapter);
+
+                            btnShow.setEnabled(true);
+                            btnShow.setText("GENERATE REPORT");
+                            Toast.makeText(ViewAttendanceActivity.this, "Report Loaded!", Toast.LENGTH_SHORT).show();
+
+                            // 🔥 UX Magic: Show Export buttons & Collapse Input Form
+                            layoutExport.setVisibility(View.VISIBLE);
+                            if (isFiltersExpanded) {
+                                toggleFilters();
+                            }
+                        }
+                    });
 
                 })
                 .addOnFailureListener(e -> {
@@ -316,6 +354,83 @@ public class ViewAttendanceActivity extends AppCompatActivity {
                     btnShow.setText("GENERATE REPORT");
                     Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
                 });
+    }
+
+    // Interface for callback when enrollment numbers are fetched
+    interface OnEnrollmentFetchedListener {
+        void onEnrollmentFetched(Map<Integer, String> enrollmentMap);
+    }
+
+    /**
+     * Fetch enrollment numbers for a list of roll numbers
+     * @param rollNumbers List of roll numbers to fetch enrollment for
+     * @param listener Callback with the map of roll -> enrollment
+     */
+    private void fetchEnrollmentNumbersForRolls(List<Integer> rollNumbers, OnEnrollmentFetchedListener listener) {
+        if (rollNumbers.isEmpty()) {
+            listener.onEnrollmentFetched(new HashMap<>());
+            return;
+        }
+
+        Map<Integer, String> enrollmentMap = new HashMap<>();
+
+        // For 3rd year, the path is Student/co_3rd/student_list/
+        // Adjust based on selectedYear if needed
+        String yearPath;
+        if (selectedYear.equals("1st Year")) {
+            yearPath = "co_1st";
+        } else if (selectedYear.equals("2nd Year")) {
+            yearPath = "co_2nd";
+        } else {
+            yearPath = "co_3rd";
+        }
+
+        // Use a counter to track completion
+        final int[] remainingRequests = {rollNumbers.size()};
+
+        for (Integer roll : rollNumbers) {
+            // Check cache first
+            if (enrollmentCache.containsKey(roll)) {
+                enrollmentMap.put(roll, enrollmentCache.get(roll));
+                remainingRequests[0]--;
+                if (remainingRequests[0] == 0) {
+                    listener.onEnrollmentFetched(enrollmentMap);
+                }
+                continue;
+            }
+
+            // Fetch from Firestore
+            db.collection("Student")
+                    .document(yearPath)
+                    .collection("student_list")
+                    .document(String.valueOf(roll))
+                    .get()
+                    .addOnSuccessListener(documentSnapshot -> {
+                        if (documentSnapshot.exists()) {
+                            String enrollment = documentSnapshot.getString("enrollmentNo");
+                            if (enrollment == null) enrollment = "";
+                            enrollmentMap.put(roll, enrollment);
+                            enrollmentCache.put(roll, enrollment);
+                        } else {
+                            enrollmentMap.put(roll, "");
+                            enrollmentCache.put(roll, "");
+                        }
+
+                        remainingRequests[0]--;
+                        if (remainingRequests[0] == 0) {
+                            listener.onEnrollmentFetched(enrollmentMap);
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        enrollmentMap.put(roll, "");
+                        enrollmentCache.put(roll, "");
+
+                        remainingRequests[0]--;
+                        if (remainingRequests[0] == 0) {
+                            listener.onEnrollmentFetched(enrollmentMap);
+                        }
+                    });
+        }
     }
 
     // ----------------------------------------------------
@@ -443,7 +558,11 @@ public class ViewAttendanceActivity extends AppCompatActivity {
 
     private void savePdfFile(PdfDocument pdfDocument) {
         try {
-            String fileName = spinnerSubject.getSelectedItem().toString().replaceAll("\\s+", "_") + "_Report.pdf";
+            String subject = spinnerSubject.getSelectedItem().toString().replaceAll("\\s+", "_");
+            String fromDate = etDateFrom.getText().toString().replace("/", "-");
+            String toDate = etDateTo.getText().toString().replace("/", "-");
+
+            String fileName = subject + "_" + fromDate + "_" + toDate + "_report.pdf";
             ContentValues values = new ContentValues();
             values.put(MediaStore.MediaColumns.DISPLAY_NAME, fileName);
             values.put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf");
@@ -466,7 +585,7 @@ public class ViewAttendanceActivity extends AppCompatActivity {
 
     private void exportToExcel() {
         StringBuilder data = new StringBuilder();
-        data.append("Enrollment No,Roll No,Name");
+        data.append("Enrollment No,Roll No,Student Name");
         for (String d : allSessionDates) { data.append(",").append(d); }
         data.append(",Attended,Total Lectures,Percentage\n");
 
@@ -485,7 +604,11 @@ public class ViewAttendanceActivity extends AppCompatActivity {
         }
 
         try {
-            String fileName = spinnerSubject.getSelectedItem().toString().replaceAll("\\s+", "_") + "_Register.csv";
+            String subject = spinnerSubject.getSelectedItem().toString().replaceAll("\\s+", "_");
+            String fromDate = etDateFrom.getText().toString().replace("/", "-");
+            String toDate = etDateTo.getText().toString().replace("/", "-");
+
+            String fileName = subject + "_" + fromDate + "_" + toDate + "_report.csv";
             ContentValues values = new ContentValues();
             values.put(MediaStore.MediaColumns.DISPLAY_NAME, fileName);
             values.put(MediaStore.MediaColumns.MIME_TYPE, "text/csv");

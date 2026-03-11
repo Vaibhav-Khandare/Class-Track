@@ -36,6 +36,15 @@ android {
     buildFeatures {
         viewBinding = true
     }
+    packaging {
+        resources {
+            excludes += "META-INF/DEPENDENCIES"
+            excludes += "META-INF/LICENSE"
+            excludes += "META-INF/LICENSE.txt"
+            excludes += "META-INF/NOTICE"
+            excludes += "META-INF/NOTICE.txt"
+        }
+    }
 }
 
 dependencies {
@@ -59,6 +68,10 @@ dependencies {
     // ✅ EXCEL (ANDROID SAFE)
     implementation("org.apache.poi:poi:4.1.2")
     implementation("org.apache.poi:poi-ooxml:4.1.2")
+    implementation("org.apache.poi:poi:4.1.2")
+    implementation("org.apache.poi:poi-ooxml:4.1.2")
+    implementation("org.apache.poi:poi:5.2.3")
+    implementation("org.apache.poi:poi-ooxml:5.2.3")
 
     // Testing
     testImplementation("junit:junit:4.13.2")
