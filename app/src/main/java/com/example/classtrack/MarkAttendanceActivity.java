@@ -367,14 +367,13 @@ public class MarkAttendanceActivity extends AppCompatActivity {
                             selectedMonth + 1,
                             selectedYear
                     );
+
                     etDate.setText(date);
                 },
                 year,
                 month,
                 day
         );
-        dialog.getDatePicker().setMinDate(calendar.getTimeInMillis());
-        dialog.getDatePicker().setMaxDate(calendar.getTimeInMillis());
 
         dialog.show();
     }
